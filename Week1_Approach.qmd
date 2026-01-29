@@ -1,0 +1,42 @@
+---
+title: "Week1_Approach"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Introduction
+
+For this analysis, I plan to explore New York City Airbnb listings to understand factors that influence rental prices and availability across different neighborhoods and room types. The primary goal is to clean and transform the dataset into a format suitable for analysis, identify key variables, and prepare it for potential predictive modeling in later assignments.
+
+To tackle this problem, I will: - Source a publicly accessible NYC Airbnb dataset that includes pricing, room type, neighborhood, and availability information. - Subset relevant columns and ensure meaningful column names are used. - Identify a potential target variable (price) and explore patterns across different categories such as neighborhood group and room type. - Handle data cleaning tasks, such as removing extreme outliers (e.g., listings with unrealistically high prices or minimum nights) and addressing missing values.
+
+Anticipated data challenges include: - Large dataset size (\~48,000 listings), which may require efficient data handling. - Missing or inconsistent values for certain variables (e.g., reviews, availability). - Outliers that could distort summary statistics or visualizations.
+
+This approach will allow me to produce a clean, analyzable dataset and provide a foundation for further exploratory analysis or predictive modeling in later weeks.
+
+url \<- "[https://huggingface.co/datasets/gradio/NYC-Airbnb-Open-Data/resolve/main/AB_NYC_2019.csv"](https://huggingface.co/datasets/gradio/NYC-Airbnb-Open-Data/resolve/main/AB_NYC_2019.csv")
+
+```{r}
+
+library(tidyverse)
+
+# Load the dataset
+url <- "https://huggingface.co/datasets/gradio/NYC-Airbnb-Open-Data/resolve/main/AB_NYC_2019.csv"
+airbnb_raw <- read_csv(url)
+
+# Subset 5 columns
+airbnb_subset <- airbnb_raw %>%
+  select(
+    name,
+    neighbourhood_group,
+    room_type,
+    price,
+    number_of_reviews
+  ) %>%
+  slice_head(n = 7)  # take first 7 rows
+
+# Show as a table
+airbnb_subset
+
+```
