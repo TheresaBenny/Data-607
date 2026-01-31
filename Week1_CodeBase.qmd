@@ -1,0 +1,54 @@
+---
+title: "Week1_Assignment"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach
+
+For this analysis, I plan to explore New York City Airbnb listings to understand factors that influence rental prices and availability across different neighborhoods and room types. The primary goal is to clean and transform the dataset into a format suitable for analysis, identify key variables, and prepare it for potential predictive modeling in later assignments.
+
+To tackle this problem, I will: - Source a publicly accessible NYC Airbnb dataset that includes pricing, room type, neighborhood, and availability information. - Subset relevant columns and ensure meaningful column names are used. - Identify a potential target variable (price) and explore patterns across different categories such as neighborhood group and room type. - Handle data cleaning tasks, such as removing extreme outliers (e.g., listings with unrealistically high prices or minimum nights) and addressing missing values.
+
+Anticipated data challenges include: - Large dataset size (\~48,000 listings), which may require efficient data handling. - Missing or inconsistent values for certain variables (e.g., reviews, availability). - Outliers that could distort summary statistics or visualizations.
+
+This approach will allow me to produce a clean, analyzable dataset and provide a foundation for further exploratory analysis or predictive modeling in later weeks.
+
+url \<- "[https://huggingface.co/datasets/gradio/NYC-Airbnb-Open-Data/resolve/main/AB_NYC_2019.csv"](https://huggingface.co/datasets/gradio/NYC-Airbnb-Open-Data/resolve/main/AB_NYC_2019.csv%22)
+
+##Code Base
+
+```{r}
+
+library(tidyverse)
+library(gt)
+
+# Load the dataset
+url <- "https://raw.githubusercontent.com/TheresaBenny/Data-607/refs/heads/main/AB_NYC_2019.csv"
+
+# Displaying raw data 
+df <- read_csv(
+  file = url, 
+  show_col_types = FALSE,
+  progress = FALSE
+  
+)
+
+glimpse (df)
+```
+
+```{r}
+#Dump to GT Attempt #1 failed because system could not handle 48895 roww. Attempt #2 with less rows using slice_head function
+df |>
+  slice_head(n = 50) |>
+  gt()
+```
+
+```{r}
+#Subset
+df1 <- df[1:5, c(1,2,4,5,10)]
+
+df1 |>
+  gt()
+```
