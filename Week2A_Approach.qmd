@@ -1,0 +1,37 @@
+---
+title: "Week2_2A_Approach"
+format: html
+editor: visual
+---
+
+## Overview
+
+For this assignment, I plan to collectsimple movie-rating data from a small group of participants, store it in a SQL database, and analyze it in R. This is to practice creating normalized database tables, handling missing data,perform basic exploratory analysis, and so on. I have selected six recent or popular movies: *One Battle After Another*, *Frankenstein*, *Caught Stealing*, *Wake Up Dead Man*, *Sinners*, and *People We Meet on Vacation*.
+
+## Planned Approach
+
+1.  **Data Collection:**
+    -   I will ask a group of participants (using their initials to preserve privacy) to rate each movie they have seen on a 1–5 scale.\
+    -   Participants include: R.T, S.T, H.A, D.B, M.D, M.B, K.B, C.S, R.Y, Z.S, and M.A.\
+    -   Missing ratings will be expected if participants have not seen all movies.
+2.  **Database Design and Storage:**
+    -   I will create a **PostgreSQL database** with three tables:
+        -   `users` (user_id, initials)
+        -   `movies` (movie_id, title)
+        -   `ratings` (user_id, movie_id, rating)
+    -   This design handles the many-to-many relationship between users and movies through the `ratings` table.
+    -   SQL code will be provided to create and populate the tables, so anyone can recreate the dataset if needed.
+3.  **Loading Data into R:**
+    -   I will query the SQL database directly from R using DBI/RPostgres or export the tables to CSV and read them in using `read_csv()`.\
+    -   Data will be transformed into a tidy dataframe for analysis.
+4.  **Analysis in R:**
+    -   I will inspect the data for missing ratings and handle them appropriately.\
+    -   Simple summaries will include the number of ratings per movie, the average rating per movie, and any other exploratory insights.\
+    -   I could also add visualizations to illustrate rating distributions or averages.
+
+## Data Challenges and Considerations
+
+-   **Missing Data:** Not all participants will have seen all movies, so the `ratings` table will contain NULLs.\
+-   **Data Consistency:** Ratings must be integers between 1–5.\
+-   **Reproducibility:** SQL code and R scripts will be included to allow others to recreate and analyze the dataset without including private information.\
+-   **Optional Enhancements:** I may consider exploring rating standardization to account for different participant scoring habits.
