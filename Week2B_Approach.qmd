@@ -1,0 +1,53 @@
+---
+title: "Week2B_Approach"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Overview
+
+For this assignment, I plan to analyze the performance of a binary classification model predicting whether a penguin is female. The goal is to understand how probability thresholds affect evaluation metrics, such as accuracy, precision, recall, and F1 score. The dataset contains model-predicted probabilities (`.pred_female`), predicted classes (`.pred_class`), and the actual class labels (`sex`).
+
+## Planned Approach
+
+1.  **Data Exploration:**
+    -   Load `penguin_predictions.csv` into R using `read_csv()`.\
+    -   Inspect the distribution of the actual class (`sex`) using `count(sex)` and visualize it with `ggplot2`.\
+    -   Compute the **null error rate** by identifying the majority class and calculating the proportion of misclassified observations if the model always predicted that class.\
+    -   Understanding the null error rate provides a baseline to evaluate model performance.
+2.  **Threshold-Based Classification:**
+    -   Ignore `.pred_class` initially.\
+
+    -   For thresholds of 0.2, 0.5, and 0.8, convert predicted probabilities into predicted classes using:
+
+        ``` r
+        predicted_class <- ifelse(.pred_female > threshold, 1, 0)
+        ```
+
+    -   This allows us to explore how changing the threshold affects model errors and metrics.
+3.  **Confusion Matrices:**
+    -   For each threshold, manually compute:
+        -   True Positives (TP)\
+        -   False Positives (FP)\
+        -   True Negatives (TN)\
+        -   False Negatives (FN)\
+    -   Present results as three confusion matrices corresponding to the three thresholds.\
+    -   Understanding TP, FP, TN, FN is crucial, as all performance metrics are derived from these values.
+4.  **Performance Metrics Calculation:**
+    -   Calculate **Accuracy, Precision, Recall, and F1 score** for each threshold using the formulas:
+        -   Accuracy = (TP + TN) / total\
+        -   Precision = TP / (TP + FP)\
+        -   Recall = TP / (TP + FN)\
+        -   F1 Score = harmonic mean of Precision and Recall\
+    -   Present metrics in a clear table to compare threshold effects.
+5.  **Threshold Use Cases:**
+    -   Discuss scenarios where a low threshold (0.2) is preferable, e.g., when missing a positive instance is costly.\
+    -   Discuss scenarios where a high threshold (0.8) is preferable, e.g., when false positives are more harmful than false negatives.
+
+## Data Challenges and Considerations
+
+-   **Class Imbalance:** If one class dominates, metrics like accuracy may be misleading; null error rate provides context.\
+-   **Threshold Trade-offs:** Different thresholds produce different balances of precision and recall; selecting an appropriate threshold depends on the real-world consequences of errors.\
+-   **Reproducibility:** All calculations will be done in R with code provided, so others can replicate the results.\
+-   **Visualization:** Plots of predicted probability distributions or threshold effects will help intuitively understand model behavior.
