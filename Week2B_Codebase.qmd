@@ -1,0 +1,255 @@
+---
+title: "Week2B_Approach"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Overview
+
+For this assignment, I plan to analyze the performance of a binary classification model predicting whether a penguin is female. The goal is to understand how probability thresholds affect evaluation metrics, such as accuracy, precision, recall, and F1 score. The dataset contains model-predicted probabilities (`.pred_female`), predicted classes (`.pred_class`), and the actual class labels (`sex`).
+
+## Planned Approach
+
+1.  **Data Exploration:**
+    -   Load `penguin_predictions.csv` into R using `read_csv()`.\
+    -   Inspect the distribution of the actual class (`sex`) using `count(sex)` and visualize it with `ggplot2`.\
+    -   Compute the **null error rate** by identifying the majority class and calculating the proportion of misclassified observations if the model always predicted that class.\
+    -   Understanding the null error rate provides a baseline to evaluate model performance.
+2.  **Threshold-Based Classification:**
+    -   Ignore `.pred_class` initially.\
+
+    -   For thresholds of 0.2, 0.5, and 0.8, convert predicted probabilities into predicted classes using:
+
+        ``` r
+        predicted_class <- ifelse(.pred_female > threshold, 1, 0)
+        ```
+
+    -   This allows us to explore how changing the threshold affects model errors and metrics.
+3.  **Confusion Matrices:**
+    -   For each threshold, manually compute:
+        -   True Positives (TP)\
+        -   False Positives (FP)\
+        -   True Negatives (TN)\
+        -   False Negatives (FN)\
+    -   Present results as three confusion matrices corresponding to the three thresholds.\
+    -   Understanding TP, FP, TN, FN is crucial, as all performance metrics are derived from these values.
+4.  **Performance Metrics Calculation:**
+    -   Calculate **Accuracy, Precision, Recall, and F1 score** for each threshold using the formulas:
+        -   Accuracy = (TP + TN) / total\
+        -   Precision = TP / (TP + FP)\
+        -   Recall = TP / (TP + FN)\
+        -   F1 Score = harmonic mean of Precision and Recall\
+    -   Present metrics in a clear table to compare threshold effects.
+5.  **Threshold Use Cases:**
+    -   Discuss scenarios where a low threshold (0.2) is preferable, e.g., when missing a positive instance is costly.\
+    -   Discuss scenarios where a high threshold (0.8) is preferable, e.g., when false positives are more harmful than false negatives.
+
+## Data Challenges and Considerations
+
+-   **Class Imbalance:** If one class dominates, metrics like accuracy may be misleading; null error rate provides context.\
+-   **Threshold Trade-offs:** Different thresholds produce different balances of precision and recall; selecting an appropriate threshold depends on the real-world consequences of errors.\
+-   **Reproducibility:** All calculations will be done in R with code provided, so others can replicate the results.\
+-   **Visualization:** Plots of predicted probability distributions or threshold effects will help intuitively understand model behavior. #Codebase Deliverable
+
+```{r}
+# Load packages
+library(readr)
+
+# Read the CSV
+penguins <- read_csv("https://raw.githubusercontent.com/acatlin/data/refs/heads/master/penguin_predictions.csv")
+
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Count how many of each class
+table(penguins$sex)
+
+# Or with dplyr
+penguins %>%
+  count(sex)
+#I want this in a bar chart so I will be using ggplot here
+
+ggplot(penguins, aes(x = sex)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Distribution of Actual Sex", x = "Sex", y = "Count")
+
+```
+
+```{r}
+# Count of each class
+class_counts <- table(penguins$sex)
+
+# Majority class- extract name of majority class
+majority_class <- names(which.max(class_counts))
+
+# Null error rate: 1- majority-class observations/ total observations
+null_error_rate <- 1 - max(class_counts) / sum(class_counts)
+null_error_rate
+
+```
+
+```{r}
+# Load tidyverse 
+library(tidyverse)
+
+# Load your CSV file
+penguin_predictions <- read_csv(penguins <- "https://raw.githubusercontent.com/acatlin/data/refs/heads/master/penguin_predictions.csv", show_col_types = FALSE)
+
+# Glimpse at the first 6 rows for ease of reading
+head(penguin_predictions)
+
+# Threshold 0.2
+threshold <- 0.2
+
+#mutate = add new columns for pred_class_thresh
+penguins_0.2 <- penguin_predictions %>%
+  mutate(pred_class_thresh = ifelse(.pred_female > threshold, 1, 0),
+         actual_class = ifelse(sex == "female", 1, 0))  # convert actual sex in English to 0/1
+TP <- sum(penguins_0.2$pred_class_thresh == 1 & penguins_0.2$actual_class == 1)
+FP <- sum(penguins_0.2$pred_class_thresh == 1 & penguins_0.2$actual_class == 0)
+TN <- sum(penguins_0.2$pred_class_thresh == 0 & penguins_0.2$actual_class == 0)
+FN <- sum(penguins_0.2$pred_class_thresh == 0 & penguins_0.2$actual_class == 1)
+
+# Display confusion matrix
+conf_matrix_0.2 <- matrix(c(TP, FP, FN, TN), nrow = 2, byrow = TRUE,
+                          dimnames = list("Predicted" = c("Female", "Male"),
+                                          "Actual" = c("Female", "Male")))
+conf_matrix_0.2
+
+
+```
+
+```{r}
+#Repeat previous code for 0.5 threshold
+# Load tidyverse 
+library(tidyverse)
+
+# Load your CSV file
+penguin_predictions <- read_csv(penguins <- "https://raw.githubusercontent.com/acatlin/data/refs/heads/master/penguin_predictions.csv", show_col_types = FALSE)
+
+# Quick check
+head(penguin_predictions)
+
+# Threshold 0.5
+threshold <- 0.5
+
+penguins_0.5 <- penguin_predictions %>%
+  mutate(pred_class_thresh = ifelse(.pred_female > threshold, 1, 0),
+         actual_class = ifelse(sex == "female", 1, 0))  # convert actual sex to 0/1
+TP <- sum(penguins_0.5$pred_class_thresh == 1 & penguins_0.5$actual_class == 1)
+FP <- sum(penguins_0.5$pred_class_thresh == 1 & penguins_0.5$actual_class == 0)
+TN <- sum(penguins_0.5$pred_class_thresh == 0 & penguins_0.5$actual_class == 0)
+FN <- sum(penguins_0.5$pred_class_thresh == 0 & penguins_0.5$actual_class == 1)
+
+# Display confusion matrix
+conf_matrix_0.5 <- matrix(c(TP, FP, FN, TN), nrow = 2, byrow = TRUE,
+                          dimnames = list("Predicted" = c("Female", "Male"),
+                                          "Actual" = c("Female", "Male")))
+conf_matrix_0.5
+
+```
+
+```{r}
+#And repeat for 0.8
+# Load tidyverse 
+library(tidyverse)
+
+# Load your CSV file
+penguin_predictions <- read_csv(penguins <- "https://raw.githubusercontent.com/acatlin/data/refs/heads/master/penguin_predictions.csv", show_col_types = FALSE)
+
+# Quick check
+head(penguin_predictions)
+
+#Threshold 0.8
+threshold <- 0.8
+
+penguins_0.8 <- penguin_predictions %>%
+  mutate(pred_class_thresh = ifelse(.pred_female > threshold, 1, 0),
+         actual_class = ifelse(sex == "female", 1, 0))  # convert actual sex to 0/1
+TP <- sum(penguins_0.8$pred_class_thresh == 1 & penguins_0.8$actual_class == 1)
+FP <- sum(penguins_0.8$pred_class_thresh == 1 & penguins_0.8$actual_class == 0)
+TN <- sum(penguins_0.8$pred_class_thresh == 0 & penguins_0.8$actual_class == 0)
+FN <- sum(penguins_0.8$pred_class_thresh == 0 & penguins_0.8$actual_class == 1)
+
+# Display confusion matrix
+conf_matrix_0.8 <- matrix(c(TP, FP, FN, TN), nrow = 2, byrow = TRUE,
+                          dimnames = list("Predicted" = c("Female", "Male"),
+                                          "Actual" = c("Female", "Male")))
+conf_matrix_0.8
+
+```
+
+```{r}
+thresholds <- c(0.2, 0.5, 0.8)
+#create empty data frame first
+metrics_summary <- data.frame(
+  Threshold = numeric(),
+  Accuracy = numeric(),
+  Precision = numeric(),
+  Recall = numeric(),
+  F1 = numeric()
+)
+for (t in thresholds) {
+  
+  # Convert probabilities to predicted class based on the threshold
+  predicted <- ifelse(penguin_predictions$.pred_female > t, "female", "male")
+  
+  # Confusion matrix counts
+  TP <- sum(predicted == "female" & penguin_predictions$sex == "female")
+  TN <- sum(predicted == "male" & penguin_predictions$sex == "male")
+  FP <- sum(predicted == "female" & penguin_predictions$sex == "male")
+  FN <- sum(predicted == "male" & penguin_predictions$sex == "female")
+  
+  # Metrics
+  Accuracy <- (TP + TN) / (TP + TN + FP + FN)
+  Precision <- ifelse((TP + FP) == 0, NA, TP / (TP + FP))
+  Recall <- ifelse((TP + FN) == 0, NA, TP / (TP + FN))
+  F1 <- ifelse(is.na(Precision) | is.na(Recall) | (Precision + Recall) == 0, NA,
+               2 * Precision * Recall / (Precision + Recall))
+  
+  # Add row to summary table
+  metrics_summary <- rbind(metrics_summary, data.frame(
+    Threshold = t,
+    Accuracy = round(Accuracy, 3),
+    Precision = round(Precision, 3),
+    Recall = round(Recall, 3),
+    F1 = round(F1, 3)
+  ))
+}
+metrics_summary
+
+library(gt)
+
+# Create a gt table
+metrics_summary %>%
+  gt() %>%
+  tab_header(
+    title = "Classification Metrics by Threshold"
+  ) %>%
+  cols_label(
+    Threshold = "Probability Threshold",
+    Accuracy = "Accuracy",
+    Precision = "Precision",
+    Recall = "Recall",
+    F1 = "F1 Score"
+  ) %>%
+  fmt_number(
+    columns = vars(Accuracy, Precision, Recall, F1),
+    decimals = 3
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels(everything())
+  )
+
+```
+
+```{r}
+#A super low threshold like 0.2 means that the model will be extremely sensitive. Even if there's a 20% chance something is positive, the model will predict it to be positive. In the real world, such a sensitive model would be most useful in a potential cancer detection study, where the disease is highly time-sensitive and dangerous. You'd rather have more false positives than risk not detecting a patient with cancer.
+
+#A super high threshold like 0.8, on the other hand, means only if there is an 80% chance something is positive, the model will actually predict it to be positive. This could be useful in cases like determining when to email offers to high-value wealth clients in a financial institution, for example. Only those most likely to have a positive response should be targeted.
+```
