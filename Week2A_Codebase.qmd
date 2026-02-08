@@ -1,0 +1,147 @@
+---
+title: "Week2_2A_Approach"
+format: html
+editor: visual
+---
+
+## Overview
+
+For this assignment, I plan to collect simple movie-rating data from a small group of participants, store it in a SQL database, and analyze it in R. This is to practice creating normalized database tables, handling missing data,perform basic exploratory analysis, and so on. I have selected six recent or popular movies: *One Battle After Another*, *Frankenstein*, *Caught Stealing*, *Wake Up Dead Man*, *Sinners*, and *People We Meet on Vacation*.
+
+## Planned Approach
+
+1.  **Data Collection:**
+    -   I will ask a group of participants (using their initials to preserve privacy) to rate each movie they have seen on a 1–5 scale.\
+    -   Participants include: R.T, S.T, H.A, D.B, M.D, M.B, K.B, C.S, R.Y, Z.S, and M.A.\
+    -   Missing ratings will be expected if participants have not seen all movies.
+2.  **Database Design and Storage:**
+    -   I will create a **PostgreSQL database** with three tables:
+        -   `users` (user_id, initials)
+        -   `movies` (movie_id, title)
+        -   `ratings` (user_id, movie_id, rating)
+    -   This design handles the many-to-many relationship between users and movies through the `ratings` table.
+    -   SQL code will be provided to create and populate the tables, so anyone can recreate the dataset if needed.
+3.  **Loading Data into R:**
+    -   I will query the SQL database directly from R using DBI/RPostgres or export the tables to CSV and read them in using `read_csv()`.\
+    -   Data will be transformed into a tidy dataframe for analysis.
+4.  **Analysis in R:**
+    -   I will inspect the data for missing ratings and handle them appropriately.\
+    -   Simple summaries will include the number of ratings per movie, the average rating per movie, and any other exploratory insights.\
+    -   I could also add visualizations to illustrate rating distributions or averages.
+
+## Data Challenges and Considerations
+
+-   **Missing Data:** Not all participants will have seen all movies, so the `ratings` table will contain NULLs.\
+-   **Data Consistency:** Ratings must be integers between 1–5.\
+-   **Reproducibility:** SQL code and R scripts will be included to allow others to recreate and analyze the dataset without including private information.\
+-   **Optional Enhancements:** I may consider exploring rating standardization to account for different participant scoring habits.
+
+## Codebase Deliverable
+
+```{r}
+#First, I completed creating 3 tables in SQL Database (one for users, one for movies, then a relational table that joins the two). 
+
+#Install packages required to load my pgAdmin4 SQL data: 
+install.packages("RPostgres")
+install.packages("dplyr")
+```
+
+SQL:
+
+CREATE TABLE users( user_id SERIAL PRIMARY KEY, initials TEXT NOT NULL );
+
+CREATE TABLE movies( movie_id SERIAL PRIMARY KEY, title TEXT NOT NULL );
+
+CREATE TABLE ratings ( rating_id SERIAL PRIMARY KEY, user_id INT REFERENCES users(user_id), movie_id INT REFERENCES movies(movie_id), rating INT CHECK (rating BETWEEN 1 AND 5) );
+
+INSERT INTO users(initials) VALUES ('D.B'), ('M.D'), ('R.T'), ('K.B'), ('M.P'), ('Z.S'), ('T.C'), ('D.R'), ('C.S'), ('R.Y');
+
+INSERT INTO movies(title) VALUES ('One Battle After Another'), ('Caught Stealing'), ('Frankenstein'), ('People We Meet on Vacation'), ('Wake Up Dead Man'), ('Sinners');
+
+INSERT INTO ratings (user_id, movie_id, rating) VALUES (1, 1, NULL), (1, 2, NULL), (1, 3, NULL), (1, 4, NULL), (1, 5, NULL), (1, 6, 5), (2, 1, 3), (2, 2, 1), (2, 3, 4), (2, 4, NULL), (2, 5, 5), (2, 6, 5), (3, 1, 4), (3, 2, NULL), (3, 3, 3), (3, 4, 4), (3, 5, 5), (3, 6, NULL), (4, 1, NULL), (4, 2, NULL), (4, 3, 5), (4, 4, 4), (4, 5, NULL), (4, 6, NULL), (5, 1, NULL), (5, 2, 5), (5, 3, 3), (5, 4, 5), (5, 5, 5), (5, 6, 5), (6, 1, 2), (6, 2, 4), (6, 3, 4), (6, 4, NULL), (6, 5, 4), (6, 6, 5), (7, 1, NULL), (7, 2, NULL), (7, 3, 2), (7, 4, 5), (7, 5, NULL), (7, 6, 5), (8, 1, NULL), (8, 2, NULL), (8, 3, NULL), (8, 4, NULL), (8, 5, NULL), (8, 6, NULL), (9, 1, NULL), (9, 2, 2), (9, 3, 5), (9, 4, 4), (9, 5, NULL), (9, 6, 4), (10, 1, 5), (10, 2, 3), (10, 3, NULL), (10, 4, NULL), (10, 5, 4), (10, 6, 5);
+
+```{r}
+#Load the installed packages: 
+library(DBI)
+library(RPostgres)
+library(dplyr)
+
+#Connect to my postgresSQL
+con <- dbConnect(
+  RPostgres::Postgres(),
+  dbname = "movie_ratings",
+  host = "localhost",
+  port = 5432,
+  user = "theresabenny",
+)
+
+# Load tables into R
+users <- dbReadTable(con, "users")
+movies <- dbReadTable(con, "movies")
+ratings <- dbReadTable(con, "ratings")
+
+#Tried printing just the ratings and was not satisfied with the result (needed more context) decided to join tables into one tidy dataframe: 
+
+movie_ratings <- ratings %>%
+  left_join(users, by = c("user_id")) %>%
+  left_join(movies, by = c("movie_id")) %>%
+  select(initials, title, rating)
+
+print(movie_ratings)
+
+#Null ratings showed up as NA, which is fine for this table to me and more accurate.  
+
+#I wanted to see the average ratings per movie: 
+library(dplyr)
+library(gt)
+
+# Step 1: Summarize ratings per movie
+ratings_per_movie <- movie_ratings %>%
+  group_by(title) %>%
+  summarize(
+    num_ratings = sum(!is.na(rating)),
+    avg_rating = round(mean(rating, na.rm = TRUE), 2)
+  ) %>%
+  arrange(desc(avg_rating))
+
+# Step 2: Display using gt with a title
+ratings_per_movie %>%
+  gt() %>%
+  tab_header(
+    title = "Movie Ratings Summary"
+  ) %>%
+  cols_label(
+    title = "Movie",
+    num_ratings = "Number of Ratings",
+    avg_rating = "Average Rating"
+  ) %>%
+  fmt_number(
+    columns = vars(avg_rating),
+    decimals = 2
+  )
+# Count of ratings per user and the average of the rating per user
+ratings_per_user <- movie_ratings %>%
+  group_by(initials) %>%
+  summarize(
+    num_ratings = sum(!is.na(rating)),
+    avg_rating = round(mean(rating, na.rm = TRUE), 2)
+  ) %>%
+  arrange(desc(avg_rating))
+
+ratings_per_user %>%
+  gt() %>%
+  tab_header(
+    title = "User Ratings Summary"
+  ) %>%
+  cols_label(
+    initials = "User",
+    num_ratings = "Number of Ratings",
+    avg_rating = "Average Rating"
+  ) %>%
+  fmt_number(
+    columns = vars(avg_rating),
+    decimals = 2
+  )
+
+#Decided I want to convert it into a cleaner GT table, so made changes to the code above to dump the tables into GT 
+```
