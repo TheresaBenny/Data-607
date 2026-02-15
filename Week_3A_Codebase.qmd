@@ -1,0 +1,171 @@
+---
+title: "Week 3A Codebase"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach
+
+After inspecting the spreadsheet provided, I found that the spreadsheet outlines a step-by-step implementation where predicted ratings are calculated using:
+
+Global Baseline Estimate = Mean Movie Rating + movie rating relative to average + user rating relative to average
+
+And this model adjusts for overall rating tendencies while accounting for systematic differences across both movies and users.
+
+To align directly with the spreadsheet implementation, I will follow these steps:
+
+1\. Import and Prepare the Data
+
+The dataset is structured in wide format (one row per critic and one column per movie). Therefore, I will need to:
+
+-   Import the spreadsheet into R
+
+-   Ensure all ratings are numeric
+
+-   Handle missing values properly (since not all users rated every movie)
+
+-   Missing values will be excluded from all mean calculations rather than treated as zeros.
+
+2\. Compute the Mean Movie Rating (Global Mean)
+
+The first step in the spreadsheet is calculating the **overall mean rating across all movies and critics**.
+
+3\. Compute Movie Deviation
+
+For each movie:
+
+-   Calculate that movie’s average rating
+
+-   Subtract the global mean
+
+This measures whether a movie is generally rated higher or lower than average.
+
+4\. Compute User Deviation
+
+For each critic:
+
+-   Calculate that critic’s average rating
+
+-   Subtract the global mean
+
+This captures whether a critic tends to rate generously or harshly compared to the overall average.
+
+5.  Generate Global Baseline Predictions
+
+For any missing rating, the prediction will be:
+
+Predicted Rating = Mean Movie Rating + Movie Deviation + User Deviation​
+
+Using this formula, I will:
+
+-   Compute predicted ratings for movies a user has not rated
+
+-   Select the highest predicted value
+
+-   Recommend that movie to the user
+
+**Anticipated Data Challenges**
+
+1\. Missing Ratings (Sparse Data)
+
+Because not every user rated every movie, the dataset contains many missing values. These must be carefully excluded from mean calculations.
+
+Sparse ratings may also make some movie or user averages unstable if based on only one or two ratings.
+
+2\. Small Sample Size
+
+Since this is a small survey dataset, extreme ratings could significantly influence averages. The model does not include regularization, so predictions may be sensitive to outliers.
+
+### Codebase
+
+```{r}
+library(dplyr)
+library(gt)
+movie_ratings <- readRDS("movie_ratings.rds")
+#First I want to remove the NA so we get a proper clean data that we can use to calculate the averages
+ratings_clean <- movie_ratings %>%
+  filter(!is.na(rating))
+
+#Now I'll calculate a global mean by taking the rating from the rating column in cleaned ratings_clean.
+
+global_mean <- mean(ratings_clean$rating)
+global_mean
+
+#Now we will calculate the movie bias: do movies get rated higher or lower than 4.06...
+
+movie_bias <- ratings_clean %>%
+  group_by(title) %>%
+  summarise(
+    movie_avg = mean(rating)
+  ) %>%
+  mutate(
+    b_i= movie_avg - global_mean
+  ) %>%
+  arrange(desc(b_i))
+
+movie_bias
+```
+
+```{r}
+#Now it's time to calculate user bias.Copy paste the above formula but tweak for user
+
+user_bias <- ratings_clean %>%
+  group_by(initials) %>%          
+  summarise(
+    user_avg = mean(rating)      
+  ) %>%
+  mutate(
+    b_u = user_avg - global_mean  
+  ) %>%
+  arrange(desc(b_u))            
+
+user_bias
+```
+
+```{r}
+#Now I need to find all the ratings that are missing, so we will be calculating the predicted movie rating. First, let me create a table of every user x every movie:
+all_combos <- expand.grid(
+  initials = unique(ratings_clean$initials),
+  title = unique(ratings_clean$title)
+)
+
+#Now attach actual ratings to see what is missing
+all_combos <- all_combos %>%
+  left_join(ratings_clean, by = c("initials", "title"))
+#Attach movie bias and user bias
+all_combos <- all_combos %>%
+  left_join(movie_bias %>% select(title, b_i), by = "title") %>%
+  left_join(user_bias  %>% select(initials, b_u), by = "initials")
+
+#Add the predicted rating using the formula
+all_combos <- all_combos %>%
+  mutate(
+    predicted_rating = global_mean + b_i + b_u
+  )
+#Recommend the best predicted movie per user
+
+recommendations <- all_combos %>%
+  filter(is.na(rating)) %>%          
+  group_by(initials) %>%             
+  slice_max(predicted_rating, n = 1) %>%
+  arrange(desc(predicted_rating)) 
+
+recommendations
+
+
+#Dump into GT
+
+
+recommendations %>%
+  ungroup() %>%                                 
+  select(initials, title, predicted_rating) %>%   
+  gt() %>%
+  tab_header(title = "Movie Recommendations Using Global Baseline Estimate") %>%
+  cols_label(
+    initials = "User",
+    title = "Recommended Movie",
+    predicted_rating = "Predicted Rating"
+  ) %>%
+  fmt_number(columns = predicted_rating, decimals = 2)
+```
