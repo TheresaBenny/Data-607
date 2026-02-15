@@ -1,0 +1,157 @@
+---
+title: "Week 3B Codebase"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach
+
+I'll be analyzing time-series data for at least two separate items and use **window functions** to compute:
+
+-   **Year-to-Date (YTD) average**
+
+-   **Six-day moving average**
+
+I would focus not just on calculating averages, but on applying window functions correctly within grouped time-series data.
+
+Dataset Selection
+
+I will use a time-series dataset containing daily closing prices for at least two financial instruments (e.g., two stocks or cryptocurrencies) starting from January 1, 2022.
+
+The dataset will include:
+
+-   `date`
+
+-   `item` (stock or cryptocurrency name/symbol)
+
+-   `closing_price`
+
+This structure allows grouping by item and ordering by date which are both required for window functions.
+
+Data Preparation
+
+Before applying window functions, I will:
+
+1.  Ensure the `date` column is stored as a proper date type.
+
+2.  Sort the dataset by `item` and `date`.
+
+3.  Verify no duplicate dates per item.
+
+4.  Handle missing dates or values if necessary.
+
+The data will be grouped by `item` before calculating rolling or cumulative metrics.
+
+Year-to-Date (YTD) Average
+
+The YTD average represents the cumulative average price for each item from January 1 of the current year up to each specific date.
+
+Using window logic:
+
+-   Partition by `item`
+
+-   Order by `date`
+
+-   Use a cumulative window frame from the start of the year to the current row
+
+Six-Day Moving Average The six-day moving average calculates the average closing price over the current day and the previous five days.
+
+Using window logic:
+
+-   Partition by `item`
+
+-   Order by `date`
+
+-   Use a rolling window frame of 6 rows (current row + 5 preceding rows)
+
+For the first five days (where fewer than six observations exist), the result will either:
+
+-   Be `NA`, or use partial windows (depending on implementation choice)
+
+**Anticipated Challenges**
+
+1\. Ordering and Grouping
+
+Window functions depend heavily on correct ordering. Any sorting errors will produce incorrect rolling averages.
+
+2\. Year Boundaries
+
+If multiple years are included, YTD must reset each January 1. This requires partitioning by both item and year. 
+
+##Codebase
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(tibble)
+
+#LLM generated the below dataset for Apple and Microsoft stocks
+stock_data <- tibble(
+  date = rep(seq.Date(as.Date("2024-01-02"), by = "day", length.out = 10), 2),
+  stock = rep(c("AAPL", "MSFT"), each = 10),
+  close = c(
+    # Apple closing prices (realistic Jan 2024 levels)
+    185, 187, 186, 188, 190, 191, 189, 192, 193, 195,
+    # Microsoft closing prices
+    370, 372, 371, 374, 376, 378, 377, 379, 381, 382
+  )
+)
+
+stock_data
+
+```
+```{r}
+#Now calculate YTD average using the cummean function in dplyr
+stock_ytd <- stock_data %>%
+  group_by(stock, year(date)) %>%
+  arrange(date) %>%
+  mutate(
+    ytd_avg = cummean(close)
+  )
+
+stock_ytd
+
+```
+
+```{r}
+#this library has the rollmean function to calculating the rolling-average
+library(zoo)
+
+stock_ma <- stock_ytd %>%
+  group_by(stock) %>%
+  arrange(date) %>%
+  mutate(
+    ma_6day = rollmean(close, k = 6, fill = NA, align = "right")
+  )
+
+stock_ma
+
+```
+```{r}
+stock_ma %>%
+  filter(stock == "AAPL") %>%
+  select(date, close, ytd_avg, ma_6day)
+
+library(gt)
+
+stock_ma %>%
+  select(stock, date, close, ytd_avg, ma_6day) %>%
+  gt(groupname_col = "stock") %>%
+  tab_header(
+    title = "Daily Closing Prices with YTD and 6-Day Moving Average by Stock"
+  ) %>%
+  cols_label(
+    stock   = "Stock",
+    date    = "Date",
+    close   = "Closing Price",
+    ytd_avg = "YTD Average",
+    ma_6day = "6-Day Moving Avg"
+  ) %>%
+  fmt_number(
+    columns = c(close, ytd_avg, ma_6day),
+    decimals = 2
+  )
+
+```
+
