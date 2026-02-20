@@ -1,0 +1,81 @@
+---
+title: "Project 1 Approach"
+author: "Theresa Benny"
+date: "2026-02-20"
+output: html_document
+---
+
+# Approach
+
+## Project 1 Approach 
+
+Convert the semi-structured chess tournament results text into a clean CSV with one row per player containing:
+
+-   **Player Name**
+
+-   **Player State**
+
+-   **Total Points**
+
+-   **Pre-Rating**
+
+-   **Average Pre-Rating of Opponents**
+
+***How I’ll tackle the problem***
+
+**1) Read the raw file and split it into player records**
+
+Each player’s information spans (at least) two lines:
+
+-   Line 1: pair number, player name, total points, and round-by-round results like `W 39`, `D 12`, `L 4`, etc.
+
+-   Line 2: state and rating information like `ON | … / R: 1794 ->1817`
+
+I’ll parse the file into a list of player blocks and extract the “fields” from each block.
+
+2) Build a “players” table (one row per player)
+
+For each player block, I’ll extract:
+
+-   **PairNum** (used as a key)
+
+-   **PlayerName**
+
+-   **TotalPts**
+
+-   **State**
+
+-   **PreRating**
+
+This becomes my primary table keyed by `PairNum`, because opponent references in round results are given by opponent **pair number** (e.g., `W 39`).
+
+**3) Build an “opponents” table from round columns**
+
+From the round results columns, I’ll extract **opponent pair numbers** for each player across rounds. The round cells contain both result and opponent number (e.g., `W 39`, `L 4`, `D 12`). I’ll strip off the result letter and keep the numeric opponent id.
+
+Then I’ll reshape so each row is:
+
+-   `player_pairnum`
+
+-   `opponent_pairnum` (one per round where applicable)
+
+**4) Join opponents to player pre-ratings and compute average opponent rating**
+
+Using `opponent_pairnum`, I’ll join back to the players table to fetch each opponent’s **PreRating**. Then, for each player, I’ll compute the average of opponents’ pre-tournament ratings across games played.
+
+**5) Output the final CSV**
+
+The final CSV will contain exactly the required columns, in the requested order:
+
+-   Name, State, TotalPoints, PreRating, AvgOppPreRating
+
+Data challenges I anticipate (and how I’ll handle them)
+
+1.  **Non-game placeholders in rounds (Byes / Unplayed rounds)**\
+    Round entries can include non-opponent markers like `H`, `U`, or `B` (half-point bye, unplayed, bye). These should **not** contribute an opponent rating and should be excluded from the opponent list and from the “games played” denominator.
+
+2.  **Keeping the mapping correct**\
+    Opponent references are by **pair number**, not by name. If pair numbers are mis-parsed, opponent averages will be wrong. I’ll validate by spot-checking the provided example (Gary Hua’s opponent list and computed average) against my computed result.
+
+3.  **Ensuring reproducibility when rendering**\
+    Because the project must render from a clean session, the R Markdown will include code to read the raw tournament file from a relative path (in the same folder as the Rmd/Qmd) and write the CSV output as part of the knit/render process.
