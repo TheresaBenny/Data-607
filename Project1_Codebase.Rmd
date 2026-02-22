@@ -1,0 +1,182 @@
+---
+title: "Project 1 Approach"
+author: "Theresa Benny"
+date: "2026-02-20"
+output: html_document
+---
+
+# Approach
+
+Convert the semi-structured chess tournament results text into a clean CSV with one row per player containing:
+
+-   **Player Name**
+
+-   **Player State**
+
+-   **Total Points**
+
+-   **Pre-Rating**
+
+-   **Average Pre-Rating of Opponents**
+
+***How I’ll tackle the problem***
+
+**1) Read the raw file and split it into player records**
+
+Each player’s information spans (at least) two lines:
+
+-   Line 1: pair number, player name, total points, and round-by-round results like `W 39`, `D 12`, `L 4`, etc.
+
+-   Line 2: state and rating information like `ON | … / R: 1794 ->1817`
+
+I’ll parse the file into a list of player blocks and extract the “fields” from each block.
+
+2)  Build a “players” table (one row per player)
+
+For each player block, I’ll extract:
+
+-   **PairNum** (used as a key)
+
+-   **PlayerName**
+
+-   **TotalPts**
+
+-   **State**
+
+-   **PreRating**
+
+This becomes my primary table keyed by `PairNum`, because opponent references in round results are given by opponent **pair number** (e.g., `W 39`).
+
+**3) Build an “opponents” table from round columns**
+
+From the round results columns, I’ll extract **opponent pair numbers** for each player across rounds. The round cells contain both result and opponent number (e.g., `W 39`, `L 4`, `D 12`). I’ll strip off the result letter and keep the numeric opponent id.
+
+Then I’ll reshape so each row is:
+
+-   `player_pairnum`
+
+-   `opponent_pairnum` (one per round where applicable)
+
+**4) Join opponents to player pre-ratings and compute average opponent rating**
+
+Using `opponent_pairnum`, I’ll join back to the players table to fetch each opponent’s **PreRating**. Then, for each player, I’ll compute the average of opponents’ pre-tournament ratings across games played.
+
+**5) Output the final CSV**
+
+The final CSV will contain exactly the required columns, in the requested order:
+
+-   Name, State, TotalPoints, PreRating, AvgOppPreRating
+
+Data challenges I anticipate (and how I’ll handle them)
+
+1.  **Non-game placeholders in rounds (Byes / Unplayed rounds)**\
+    Round entries can include non-opponent markers like `H`, `U`, or `B` (half-point bye, unplayed, bye). These should **not** contribute an opponent rating and should be excluded from the opponent list and from the “games played” denominator.
+
+2.  **Keeping the mapping correct**\
+    Opponent references are by **pair number**, not by name. If pair numbers are mis-parsed, opponent averages will be wrong. I’ll validate by spot-checking the provided example (Gary Hua’s opponent list and computed average) against my computed result.
+
+3.  **Ensuring reproducibility when rendering**\
+    Because the project must render from a clean session, the R Markdown will include code to read the raw tournament file from a relative path (in the same folder as the Rmd/Qmd) and write the CSV output as part of the knit/render process.
+
+# Codebase
+
+```{r}
+#Load packages: 
+library(dplyr)
+library(stringr)
+library(tidyr)
+
+# Update the filename here:
+raw_lines <- readLines("tournamentinfo.txt")
+
+#I just need the following information: Player Name, Player State, Total Points, Pre-Rating, and Average Pre-Rating of Opponents. So I'm going to extract just this info:
+
+data_lines <- raw_lines %>%
+  str_subset("\\|") %>%                 # keep lines that contain a pipe
+  str_subset("----", negate = TRUE)     # remove divider lines
+
+# remove the 2 header lines
+player_lines <- data_lines[-c(1, 2)]
+
+#  split into the two alternating line types
+player_line1 <- player_lines[seq(1, length(player_lines), by = 2)]
+player_line2 <- player_lines[seq(2, length(player_lines), by = 2)]
+
+#Turn pair number, player name and total points into a table
+
+#First create this matrix where we split each value at the | character
+line1_parts <- str_split(player_line1, "\\|", simplify = TRUE)
+
+players_core <- tibble(
+  pair_num  = as.integer(str_trim(line1_parts[, 1])),
+  name      = str_trim(line1_parts[, 2]),
+  total_pts = as.numeric(str_trim(line1_parts[, 3]))
+)
+
+#Turn state + pre-rating into a table
+
+line2_parts <- str_split(player_line2, "\\|", simplify = TRUE)
+
+player_details <- tibble(
+  state  =   str_trim(line2_parts[, 1]),
+  pre_rating = as.integer(str_extract(player_line2, "(?<=R:\\s)\\d+"))
+)
+
+#Now combine player details and player core tables into one
+
+players <- players_core %>%
+  bind_cols(player_details)
+
+#Now time to extract opponent ratings
+
+# split line1 again to get round columns
+line1_parts <- str_split(player_line1, "\\|", simplify = TRUE)
+
+# extract only the round columns (columns 4 through 10)
+round_cols <- line1_parts[, 4:10]
+
+# convert to a tibble and attach pair numbers
+rounds_tbl <- as_tibble(round_cols)
+rounds_tbl <- rounds_tbl %>%
+  mutate(pair_num = players$pair_num) %>%
+  relocate(pair_num)
+
+#Join player pair+opponent pair
+rounds_long <- rounds_tbl %>%
+  pivot_longer(
+    cols = -pair_num,
+    names_to = "round",
+    values_to = "result"
+  ) %>%
+  mutate(
+    result = str_trim(result),
+    opp_pair_num = as.integer(str_extract(result, "\\d+"))
+  ) %>%
+  filter(!is.na(opp_pair_num))
+
+#Finally, add the opponent pair numbers to players table to get the avg for each player
+
+opp_avg <- rounds_long %>%
+  left_join(
+    players %>% select(pair_num, pre_rating),
+    by = c("opp_pair_num" = "pair_num")
+  ) %>%
+  group_by(pair_num) %>%
+  summarise(
+    avg_opp_pre_rating = round(mean(pre_rating, na.rm = TRUE), 2),
+    .groups = "drop"
+  )
+
+#Final CSV output
+final_df <- players %>%
+  left_join(opp_avg, by = "pair_num") %>%
+  select(
+    name,
+    state,
+    total_pts,
+    pre_rating,
+    avg_opp_pre_rating
+  )
+
+write.csv(final_df, "final_chess_players.csv", row.names = FALSE)
+```
