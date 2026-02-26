@@ -1,0 +1,122 @@
+---
+title: "Assignment 5B Approach"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach
+
+In this assignment, I will calculate each player’s expected score in the Project 1 chess tournament using the Elo rating formula, compare it to their actual score, and identify the five players who most overperformed and the five who most underperformed relative to expectations.
+
+The key idea is that a player’s expected score in each game depends on the rating difference between the player and their opponent. By summing expected scores across all games, I can compute a total expected tournament score for each player and compare it to their actual total points.
+
+Step 1: Use Structured Data from Project 1
+
+I will reuse the cleaned dataset from Project 1, which includes:
+
+-   Player pair number
+
+-   Player pre-tournament rating
+
+-   Opponent pair numbers for each round
+
+Because I already reshaped the data into a long format (one row per player per opponent), this structure is ideal for Elo calculations. Each row already represents a single game matchup, which simplifies computing expected scores game-by-game.
+
+Step 2: Choose and Cite the Elo Formula
+
+I will use the standard Elo expected score formula:
+
+\
+E = 1/ 1+10\^((Ropp - Rplayer)/400)
+
+Where:
+
+-   \(E\) = expected score for the player
+
+-   (R\_{player}) = player’s pre-rating
+
+-   (R\_{opp}) = opponent’s pre-rating
+
+This formula is widely documented in chess rating literature and on Wikipedia under “Elo rating system.”
+
+Source:\
+Elo Rating System – Wikipedia (based on Arpad Elo’s original formulation)
+
+This formula gives a value between 0 and 1 representing the probability of winning (with draws effectively contributing 0.5 in actual scoring).
+
+Step 3: Compute Expected Score Per Game
+
+For each player-opponent pair:
+
+1.  Join opponent pre-ratings to the long matchup table.
+
+2.  Compute rating difference.
+
+3.  Apply the Elo formula to calculate expected score per game.
+
+This produces one expected value per game.
+
+Step 4: Compute Total Expected Tournament Score
+
+After computing expected score per game, I will:
+
+-   Group by player
+
+-   Sum expected scores across all games
+
+This produces each player’s total expected score (for example, 4.3).
+
+Step 5: Compare to Actual Score
+
+Each player’s actual score is already available from Project 1 (total points column).
+
+I will compute:
+
+Performance Difference = Actual Score - Expected Score\
+
+If this value is:
+
+-   Positive → player overperformed
+
+-   Negative → player underperformed
+
+Step 6: Identify Top Overperformers and Underperformers
+
+To complete the assignment:
+
+-   Sort players by performance difference descending → top 5 overperformers
+
+-   Sort ascending → top 5 underperformers
+
+This will directly answer the required output.
+
+Anticipated Data Challenges
+
+1.  Handling Byes or Unplayed Rounds\
+    Players who had byes or unplayed rounds should not have expected scores calculated for those rounds. Since those rows were already filtered out in Project 1, this should not affect calculations.
+
+2.  Ensuring Pre-Tournament Ratings Are Used\
+    Elo expected score must use pre-tournament ratings only. I will verify that I am not accidentally using post-ratings.
+
+3.  Rounding Differences\
+    Different Elo implementations sometimes vary slightly due to rounding or formula adjustments. I will use the standard 400-point divisor and cite the formula source clearly to ensure transparency.
+
+4.  Verification\
+    I will manually compute at least one expected score using the formula to confirm that my implementation is correct.
+
+Validation Strategy
+
+Before finalizing results, I will:
+
+-   Hand-calculate expected score for one player against one opponent to verify formula correctness.
+
+-   Confirm that expected scores are between 0 and 1.
+
+-   Check that stronger players have higher expected scores against lower-rated opponents.
+
+-   Confirm that total expected scores are reasonable relative to rating differences.
+
+Summary
+
+This approach builds directly on the cleaned relational structure from Project 1. By calculating expected score per game using the standard Elo formula, aggregating to the tournament level, and comparing to actual results, I will identify which players most exceeded expectations and which fell short.
