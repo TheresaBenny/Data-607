@@ -1,0 +1,144 @@
+---
+title: "Assignment 5A Approach"
+author: "Theresa Benny"
+date: "2026-02-26"
+output: html_document
+---
+
+### Approach
+
+In this assignment, I will recreate the airline delay table shown in the prompt as a dataset that can be imported into R, then tidy and transform it to support comparisons between two airlines (Alaska and AM West). The goal is not just to count delays, but to compare **delay percentages** overall and across five cities, and then explain why the “overall” comparison may disagree with the city-by-city comparison.
+
+**1) Recreate the table as a structured dataset (wide format first).**\
+I will begin by entering the values from the chart into a CSV file that mirrors the table’s layout. I plan to keep the data “wide” initially (with one row per airline + status and separate columns for each city). This matches the assignment’s intention to practice tidying. I will also preserve any empty cells in the original layout to reflect “missingness” as it appears in the source table.
+
+**2) Load the CSV into R and confirm it matches the source.**\
+After importing the CSV into R, I will validate that the counts (on-time and delayed) match the values in the chart for each airline and city. This helps prevent subtle data-entry mistakes before I do any transformations.
+
+**3) Populate missing data in a reproducible way.**\
+If there are empty cells in the recreated file, I will write a documented cleanup step that fills or flags them appropriately (depending on whether they represent true missing values or simply formatting gaps). The main idea is to demonstrate a clear, repeatable method for handling missing data rather than editing it manually.
+
+**4) Tidy the data from wide → long format.**\
+Next, I will transform the dataset into a tidy/long format with columns such as:
+
+-   airline
+
+-   status (on time / delayed)
+
+-   city
+
+-   count
+
+This structure will make it easier to compute totals and percentages using grouped summaries.
+
+**5) Compute percentages and compare airline performance in two ways.**\
+I will perform two types of comparisons, focusing on **percent delayed** (or equivalently, percent on-time):
+
+-   **Overall comparison:** Combine all cities for each airline and compute the overall delay rate.
+
+-   **City-by-city comparison:** Compute delay rates separately for each city and compare the airlines within each destination.
+
+I will present these results using a table and/or a chart, and include brief narrative interpretation for each.
+
+**6) Explain the discrepancy between overall vs city-level results.**\
+Finally, I will explain why the overall comparison can differ from the city-by-city comparison. My expectation is that the airlines may operate different numbers of flights in each city, meaning the overall rate is a *weighted average* that can be heavily influenced by a city where one airline has much higher volume. This can create a situation where one airline appears better overall even if it performs worse in several individual cities - or as we learned in class: the Simpson's paradox.
+
+Some data challenges I anticipate are:
+
+-   **Manual data entry errors:** Since the dataset is recreated from a visual table, typos or swapped numbers are possible. I will reduce this risk by checking totals and verifying values against the original chart after import.
+
+-   **Meaning of blank cells:** The original layout may include empty cells that reflect formatting rather than true missing data. I will document how I interpret and handle blanks (e.g., leaving them as NA and then filling or excluding them with justification).
+
+-   **Percentages vs counts:** Raw counts can be misleading because airlines may have very different total flight counts. I will focus on **percent delayed** to make fair comparisons.
+
+-   **Overall vs segmented comparisons:** Comparing overall performance may produce a different conclusion than comparing performance within each city. I will treat this as an important part of the analysis and explain it clearly in plain language.
+
+By recreating the table, tidying the dataset, and comparing percentages overall and by city, I expect to produce a clear summary of which airline appears to perform better under each view with a clear explanation of why those views can disagree.
+
+### Codebase
+
+```{r}
+#After creating the CSV, I will load it in R 
+
+library(tidyverse)
+
+wide <- read_csv("arrival_delays_wide - Sheet1.csv", show_col_types = FALSE)
+wide
+```
+
+```{r}
+#Fill in missing data (airline name)
+wide_filled <- wide %>%
+  fill(Airline)
+
+#Transform the data into long format
+
+long <- wide_filled %>%
+  pivot_longer(
+    cols = c(`Los Angeles`, Phoenix, `San Diego`, `San Francisco`, Seattle),
+    names_to = "City",
+    values_to = "Flights"
+  )
+long
+```
+
+```{r}
+#Create totals + percent delayed overall by airline:
+overall <- long %>%
+  group_by(Airline, Status) %>%
+  summarise(Flights = sum(Flights), .groups = "drop") %>%
+  group_by(Airline) %>%
+  mutate(
+    Total = sum(Flights),
+    Pct = Flights / Total
+  ) %>%
+  ungroup()
+
+overall
+```
+
+```{r}
+#Create a percent specific delayed
+overall_delayed <- overall %>%
+  filter(Status == "delayed") %>%
+  select(Airline, Flights, Total, Pct)
+
+overall_delayed
+```
+
+If we plot the overall delayed vs on-time percentage, we will see that Alaska has a higher percentage of delays than AM West.
+
+```{r}
+overall %>%
+  ggplot(aes(x = Airline, y = Pct, fill = Status)) +
+  geom_col(position = "stack") +
+  scale_y_continuous(labels = scales::percent)
+```
+
+```{r}
+city_perf <- long %>%
+  group_by(Airline, City, Status) %>%
+  summarise(Flights = sum(Flights), .groups = "drop") %>%
+  group_by(Airline, City) %>%
+  mutate(
+    Total = sum(Flights),
+    Pct = Flights / Total
+  ) %>%
+  ungroup()
+
+city_delayed <- city_perf %>%
+  filter(Status == "delayed") %>%
+  select(Airline, City, Flights, Total, Pct)
+
+city_delayed
+```
+
+```{r}
+city_delayed %>%
+  ggplot(aes(x = City, y = Pct, fill = Airline)) +
+  geom_col(position = "dodge") +
+  scale_y_continuous(labels = scales::percent) +
+  coord_flip()
+```
+
+If we plot the city by city percentage of delayed percentage, we will see, contradictory to our earlier finding, that AMWEST has a higher percentage of delays than Alaska. AMWEST has **a huge number of Phoenix flights** compared to other cities, so Phoenix heavily influences AMWEST’s overall rate. That kind of weighting creates a **Simpson’s paradox** situation: one airline looks better overall even if it’s worse in several individual cities (or vice versa), depending on where most of its flights are concentrated.
