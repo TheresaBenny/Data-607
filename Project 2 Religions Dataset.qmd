@@ -1,0 +1,78 @@
+---
+title: "Project 2 Religions Dataset"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach
+
+The third dataset presents survey data showing the distribution of respondents from different religious affiliations across income brackets. Each row represents a religious group, while each column represents a household income category. The values in the table represent the number of respondents within each religion who fall into a particular income bracket.
+
+This dataset is currently structured as a **cross-tabulated wide table**, where income ranges are stored as column headers and the counts of respondents appear as cell values. While this format is useful for presentation, it is not well suited for analysis because income categories are embedded in the column structure rather than represented as a variable.
+
+The goal of this transformation is to convert the dataset into a **tidy structure** where each observation represents the number of respondents for a specific religion and income bracket combination.
+
+To preserve the original dataset, I will first recreate the table exactly as shown and store it as a **wide-format CSV file**. This raw dataset will be committed to my GitHub repository before any transformations are performed.
+
+The dataset contains:
+
+-   Religious affiliation categories
+
+-   Multiple income brackets represented as columns
+
+-   Counts of respondents for each religion–income combination
+
+-   A column representing respondents who declined to report income
+
+The structure is considered wide because income categories appear as separate columns instead of being represented as values within a single variable.
+
+The dataset will first be imported into R and inspected to understand its structure, including column names, row counts, and data types. This step will help confirm that the dataset has been accurately reconstructed from the original table.
+
+Column names will be standardized to ensure consistent formatting. For example, special characters such as dollar signs and hyphens may be simplified so that column names follow a consistent naming convention. This improves readability and makes variables easier to reference in later analysis.
+
+The primary structural issue in this dataset is that income brackets are stored as separate columns. These columns will be reshaped into a tidy format where:
+
+-   One column represents the **income bracket**
+
+-   One column represents the **number of respondents**
+
+After this transformation, each row will represent a single combination of religion and income bracket.
+
+The resulting dataset will include variables such as:
+
+-   religion
+
+-   income_bracket
+
+-   respondent_count
+
+This structure follows tidy data principles and allows easier grouping, filtering, and comparison across income categories.
+
+The column labeled “Don't know/refused” represents respondents who did not provide income information. This category will be retained as a separate income group so that missing responses remain documented rather than being removed from the dataset.
+
+Once the dataset has been transformed into tidy format, I will analyze how income distribution varies across religious groups.
+
+Potential analyses include:
+
+-   Comparing **income distribution across religious affiliations**
+
+-   Identifying which religions have **higher proportions of respondents in higher income brackets**
+
+-   Calculating the **relative share of respondents in each income category**
+
+-   Visualizing income distributions across religions using bar charts or stacked charts
+
+These analyses will help illustrate how income levels differ across religious groups and allow clearer comparisons between categories.
+
+Several challenges may arise when working with this dataset:
+
+1.  Income categories are currently embedded within column names and must be converted into a single variable.
+
+2.  Column names include special characters such as dollar signs and ranges that may require standardization.
+
+3.  The “Don't know/refused” category must be handled carefully so that it is not mistakenly removed during analysis.
+
+4.  Because the data represents counts rather than percentages, additional calculations may be needed to compare distributions across groups.
+
+Addressing these issues will ensure the dataset is properly structured for analysis and visualization.

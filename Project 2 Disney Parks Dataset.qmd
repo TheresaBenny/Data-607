@@ -1,0 +1,86 @@
+---
+title: "Project 2_Disney Parks Dataset"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach
+
+The second dataset contains monthly attendance estimates for several Disney theme parks during 2025. Each row represents a park, and each column represents attendance for a specific month of the year. Additional information includes the geographic region of each park.
+
+The dataset is currently stored in a **wide format**, where each month is represented as a separate column. While this layout may be convenient for viewing, it is not ideal for analysis or visualization. For example, analyzing attendance trends across months or comparing parks over time becomes difficult when each month is stored in a different column.
+
+The goal of this transformation is to convert the dataset into a **tidy structure** where each observation represents a park’s attendance in a specific month. This will make it easier to analyze seasonal trends, compare park performance, and visualize attendance changes throughout the year.
+
+To preserve the original dataset, I will first recreate the data exactly as shown in the source table and store it as a **wide-format CSV file**. This file will be committed to my GitHub repository before any transformations are performed.
+
+The raw dataset includes the following variables:
+
+-   Park name
+
+-   Monthly attendance columns (January through December)
+
+-   Region where the park is located
+
+The monthly columns represent repeated measurements across time, which is the primary reason the dataset is considered wide.
+
+The dataset will be imported into R and inspected to understand its structure, including the number of rows, column names, and data types. This step helps identify any inconsistencies in column naming or formatting that must be addressed before transformation.
+
+Column names will be standardized to follow a consistent naming convention. For example, month columns may be converted into a consistent lowercase format without spaces. This ensures clarity and consistency when referencing variables in the analysis stage.
+
+The primary structural issue in this dataset is that **monthly attendance values are spread across multiple columns**. These columns will be reshaped into a tidy structure where:
+
+-   One column represents the **month**
+
+-   One column represents the **attendance value**
+
+This transformation will allow each park to have multiple rows, one for each month, instead of storing all monthly observations in separate columns.
+
+After this step, the dataset will contain variables such as:
+
+-   park_name
+
+-   region
+
+-   month
+
+-   attendance
+
+This structure follows tidy data principles and allows easier aggregation, filtering, and visualization.
+
+The attendance numbers appear in multiple formats, including:
+
+-   values with "M" (millions)
+
+-   values with "K" (thousands)
+
+-   comma-separated numbers
+
+-   values written as text such as "2.1 million"
+
+These values will need to be standardized into **numeric attendance counts**. This process will involve removing text labels and converting all attendance values into consistent numeric units. This step ensures that the attendance column can be used for calculations and statistical analysis.
+
+Some cells appear to be blank or missing. These values will be converted into standard missing data indicators. This ensures that incomplete observations do not interfere with calculations or visualizations. Once the dataset has been transformed into tidy format, I will perform exploratory analysis to examine attendance patterns across parks and months.
+
+Potential analyses include:
+
+-   Comparing **average attendance between parks**
+
+-   Identifying **seasonal trends in park attendance**
+
+-   Examining which months experience the **highest and lowest attendance**
+
+-   Comparing attendance patterns between **Florida parks and the California park**
+
+Results will be summarized using tables and visualizations. For example, line charts may be used to show monthly attendance trends for each park, while bar charts can compare overall attendance between parks.Several data preparation challenges are expected when working with this dataset:
+
+1.  Attendance values appear in **multiple textual formats**, which must be standardized before analysis.
+
+2.  Monthly data is currently **spread across many columns**, requiring restructuring into a tidy format.
+
+3.  Some **missing or blank cells** must be handled consistently.
+
+4.  Month column names may need to be standardized due to inconsistent naming patterns (for example, "Jan 2025" versus "Apr_2025").
+
+Addressing these issues will ensure the final dataset follows tidy data principles and can be analyzed efficiently.

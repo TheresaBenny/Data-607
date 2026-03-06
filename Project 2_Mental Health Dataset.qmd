@@ -1,0 +1,96 @@
+---
+title: "Project 2 - Mental Health Dataset"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach
+
+The first dataset contains simulated mental health survey data collected from participants across several cities in the United States. Each row represents a participant and includes demographic information, therapy participation, medication usage, screening scores, and monthly assessment data. However, the dataset is currently stored in a **wide and inconsistent format**, making it difficult to analyze directly.
+
+Several columns contain combined variables (such as screening scores), inconsistent missing value labels (e.g., "NA", "missing", "-", and "n/a"), and repeated measures across months (January through May). The goal of this dataset transformation is to convert the data into a **tidy structure** where each variable forms its own column and each observation forms its own row. This tidy format will allow easier analysis of trends in mental health screening scores, therapy participation, and stress levels across participants.
+
+To preserve the original dataset structure, I will first recreate the dataset in its **original wide format** and store it as a `.csv` file. This raw file will be committed to my GitHub repository before performing any transformations.
+
+The raw dataset contains columns such as:
+
+-   Participant demographics (AgeGroup, Gender, City_State)
+
+-   Mental health screening scores (PHQ-9 and GAD-7)
+
+-   Monthly measurement columns (Jan–May)
+
+-   Therapy and medication information
+
+-   Diagnostic status
+
+-   Lifestyle factors (WorkHours, Sleep, StressScale)
+
+-   Insurance type and survey metadata
+
+This file will serve as the **unmodified input dataset** for the tidying pipeline.
+
+The dataset will be imported into R using `read_csv()` from the **tidyverse** package. I will inspect the structure of the dataset using functions such as `glimpse()` and `summary()` to understand the data types and identify inconsistencies.
+
+Column names will be standardized using `rename_with()` to ensure consistent formatting (e.g., lowercase variable names and underscores instead of spaces). This improves readability and ensures compatibility with downstream analysis workflows.
+
+The `ScreeningScores` column contains two separate measurements in the format:
+
+PHQ-9:score, GAD-7:score
+
+These represent two different mental health screening scales for depression and anxiety. I plan to separate this column into two variables using `separate()` from **tidyr**.
+
+The dataset currently contains multiple columns representing monthly measurements:
+
+-   Jan
+
+-   Feb
+
+-   Mar
+
+-   Apr
+
+-   May
+
+These columns represent repeated observations over time and should be converted into a tidy structure using `pivot_longer()`.
+
+The dataset contains several different representations of missing data, including:
+
+-   "NA"
+
+-   "missing"
+
+-   "-"
+
+-   "n/a"
+
+These values will be standardized into proper `NA` values using `na_if()` or `mutate()` operations. This ensures that missing data is handled consistently during analysis.
+
+Some numeric fields currently include text (for example, "33 hours" or "7.8 hours"). These variables will be cleaned using string manipulation functions such as `str_remove()` before converting them to numeric types.
+
+Once the dataset has been converted into tidy format, I will perform exploratory analysis to understand patterns in mental health outcomes.
+
+Potential analyses include:
+
+Comparing **PHQ-9 and GAD-7 scores across age groups**
+
+Examining whether **therapy type is associated with lower stress scores**
+
+Analyzing **monthly changes in mental health screening results**
+
+Exploring relationships between **sleep hours, work hours, and stress levels**
+
+Summary tables will be generated using `dplyr` functions such as `group_by()` and `summarise()`. Visualizations will be created using **ggplot2**, including bar charts and line plots showing mental health trends over time.
+
+Several challenges are expected when tidying this dataset:
+
+1.  **Inconsistent missing value labels** that must be standardized.
+
+2.  **Combined variables** in the screening scores column that require separation.
+
+3.  **Monthly measurements stored across multiple columns**, which require reshaping.
+
+4.  **Text embedded within numeric variables** (e.g., "hours") that must be cleaned before analysis.
+
+Addressing these issues will ensure the final dataset follows tidy data principles and is suitable for reproducible analysis.
