@@ -84,3 +84,98 @@ Results will be summarized using tables and visualizations. For example, line ch
 4.  Month column names may need to be standardized due to inconsistent naming patterns (for example, "Jan 2025" versus "Apr_2025").
 
 Addressing these issues will ensure the final dataset follows tidy data principles and can be analyzed efficiently.
+
+## Codebase
+
+```{r}
+library(tidyverse)
+disney_raw <- read_csv("disney_parks_monthly_attendance.csv")
+```
+
+```{r}
+#Inspect the raw data
+
+glimpse(disney_raw)
+head(disney_raw)
+```
+
+The dataset is currently untidy because monthly attendance measurements are stored across multiple columns rather than in a single month variable. This wide structure makes it harder to analyze attendance trends over time or compare parks across months. The values in them are also inconsistent. To make the data suitable for analysis, the monthly columns will be reshaped into a tidy long format. And the inputs
+
+```{r}
+disney_clean <- disney_raw %>%
+  rename_with(tolower) %>%
+  rename(
+    park_name = `park name`,
+    jan = `jan 2025`,
+    feb = `feb-2025`,
+    mar = march,
+    apr = apr_2025,
+    may = may,
+    jun = jun,
+    jul = july,
+    aug = aug,
+    sep = sept
+  )
+
+# Reshaping Monthly Attendance 
+
+disney_clean <- disney_clean %>%
+  mutate(across(jan:sep, as.character))
+
+disney_tidy <- disney_clean %>%
+  pivot_longer(
+    cols = jan:sep,
+    names_to = "month",
+    values_to = "attendance"
+  )
+
+glimpse(disney_tidy)
+
+```
+
+```{r}
+disney_tidy <- disney_tidy %>%
+  mutate(
+    attendance = str_to_lower(attendance),
+    attendance = str_replace_all(attendance, " million", "m"),
+    attendance = case_when(
+      str_detect(attendance, "m") ~ as.numeric(str_remove(attendance, "m")) * 1000000,
+      str_detect(attendance, "k") ~ as.numeric(str_remove(attendance, "k")) * 1000,
+      TRUE ~ as.numeric(attendance)
+    )
+  )
+
+glimpse(disney_tidy)
+```
+
+Great, this looks much cleaner and consistent. It's time to do the analysis.
+
+```{r}
+#Average attendance by park
+disney_summary <- disney_tidy %>%
+  group_by(park_name) %>%
+  summarise(
+    avg_attendance = mean(attendance, na.rm = TRUE)
+  )
+disney_tidy <- disney_tidy %>%
+  mutate(month = factor(month, levels = c("jan","feb","mar","apr","may","jun","jul","aug","sep")))
+
+disney_summary
+
+```
+
+Let's visualize this data.
+
+```{r}
+ggplot(disney_tidy, aes(x = month, y = attendance, group = park_name, color = park_name)) +
+  geom_line(size = 1) +
+  geom_point() +
+  labs(
+    title = "Monthly Disney Park Attendance",
+    x = "Month",
+    y = "Attendance",
+    color = "Park"
+  )
+```
+
+The visualization shows attendance trends across Disney parks throughout the year. Magic Kingdom consistently attracts the highest attendance, while Hollywood Studios receives comparatively lower visitor numbers. Attendance peaks during the summer months, particularly in July and August, reflecting seasonal increases in tourism and school vacation periods. There's also missing data for Hollywood Studios from April to June.
