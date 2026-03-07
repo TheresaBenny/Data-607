@@ -94,3 +94,214 @@ Several challenges are expected when tidying this dataset:
 4.  **Text embedded within numeric variables** (e.g., "hours") that must be cleaned before analysis.
 
 Addressing these issues will ensure the final dataset follows tidy data principles and is suitable for reproducible analysis.
+
+## 
+
+## Codebase
+
+```{r}
+
+library(tidyverse)
+
+#import mental health data
+mental_raw <- read_csv("untidy_mental_health_data.csv")
+
+glimpse (mental_raw)
+```
+
+```{r}
+#Preview the raw data
+
+head(mental_raw)
+
+
+```
+
+From this preview, the dataset appears untidy for several reasons. Monthly observations are spread across multiple columns rather than stored in a single month variable. Some columns also contain inconsistent text formatting, and missing values may be represented in different ways instead of using standard NA values. In addition, certain variables may need to be separated or cleaned before they can be analyzed properly.
+
+```{r}
+#Let's check the column names now
+names(mental_raw)
+
+```
+
+Reviewing the column names helps identify which variables are participant characteristics and which columns represent repeated monthly measurements. It also helps determine whether variable names should be standardized to improve readability and consistency in the tidied dataset.
+
+```{r}
+# Check for Missing or Inconsistent Values
+
+summary(mental_raw)
+```
+
+```{r}
+#Let's start cleaning the dataset by renaming all the column names consistently
+
+mental_clean <- mental_raw %>%
+  rename_with(tolower)
+
+glimpse(mental_clean)
+
+
+
+```
+
+```{r}
+#Reshape monthly data to long format
+
+mental_tidy <- mental_clean %>%
+  pivot_longer(
+    cols = jan:may,
+    names_to = "month",
+    values_to = "monthly_value"
+  )
+glimpse(mental_tidy)
+```
+
+```{r}
+#Next let's handle missing and inconsistent values
+mental_tidy <- mental_tidy %>%
+  mutate(across(where(is.character), ~ na_if(.x, "missing"))) %>%
+  mutate(across(where(is.character), ~ na_if(.x, "-"))) %>%
+  mutate(across(where(is.character), ~ na_if(.x, "n/a")))
+
+glimpse(mental_tidy)
+
+#Cleaning worked!
+```
+
+```{r}
+#Screening scores column has multiple value packed into it, so let's split those out. 
+mental_tidy %>%
+  select(screeningscores) %>%
+  distinct() %>%
+  head(10)
+
+#PHQ and GAD scores are formatted differently
+
+mental_tidy <- mental_tidy %>%
+  mutate(
+    phq9_score = str_extract(screeningscores, "(?<=PHQ-9=)\\d+|(?<=PHQ9:)\\d+"),
+    gad7_score = str_extract(screeningscores, "(?<=GAD-7=)\\d+|(?<=GAD7:)\\d+")
+  )
+
+mental_tidy %>%
+  select(screeningscores, phq9_score, gad7_score) %>%
+  head(10)
+
+mental_tidy <- mental_tidy %>%
+  mutate(
+    phq9_score = as.numeric(phq9_score),
+    gad7_score = as.numeric(gad7_score)
+  )
+
+glimpse(mental_tidy)
+```
+
+```{r}
+#let's inspect if there's anywhere in the dataset that numeric values are stored as text
+mental_tidy %>%
+  select(workhours, sleep, stressscale) %>%
+  distinct() %>%
+  head(10)
+#We can see it's incosistently formatted (sometimes 'hours' sometimes 'h')
+
+
+```
+
+```{r}
+mental_tidy <- mental_tidy %>%
+  mutate(
+    workhours = as.numeric(str_extract(workhours, "\\d+\\.?\\d*")),
+    sleep = as.numeric(str_extract(sleep, "\\d+\\.?\\d*"))
+  )
+
+mental_tidy %>%
+  select(workhours, sleep) %>%
+  head(10)
+```
+
+```{r}
+#Was getting all NA so ran everything again in one code chunk: 
+
+mental_tidy <- mental_clean %>%
+  pivot_longer(
+    cols = jan:may,
+    names_to = "month",
+    values_to = "monthly_value"
+  ) %>%
+  mutate(across(where(is.character), ~ na_if(.x, "missing"))) %>%
+  mutate(across(where(is.character), ~ na_if(.x, "-"))) %>%
+  mutate(across(where(is.character), ~ na_if(.x, "n/a"))) %>%
+  mutate(
+    phq9_score = str_extract(screeningscores, "(?<=PHQ-9=)\\d+|(?<=PHQ9:)\\d+"),
+    gad7_score = str_extract(screeningscores, "(?<=GAD-7=)\\d+|(?<=GAD7:)\\d+")
+  ) %>%
+  mutate(
+    phq9_score = as.numeric(phq9_score),
+    gad7_score = as.numeric(gad7_score)
+  )
+
+mental_tidy %>%
+  filter(!is.na(workhours) | !is.na(sleep) | !is.na(stressscale)) %>%
+  select(workhours, sleep, stressscale) %>%
+  slice(1:10)
+```
+
+```{r}
+mental_tidy <- mental_tidy %>%
+  mutate(
+    workhours = as.numeric(str_remove_all(workhours, "[^0-9.]")),
+    sleep = as.numeric(str_remove_all(sleep, "[^0-9.]")),
+    stressscale = as.numeric(stressscale)
+  )
+
+mental_tidy %>%
+  filter(!is.na(workhours) | !is.na(sleep) | !is.na(stressscale)) %>%
+  select(workhours, sleep, stressscale) %>%
+  slice(1:10)
+```
+
+```{r}
+#Final tidy dataset check
+
+glimpse(mental_tidy)
+```
+
+At this point, the dataset has been transformed into a tidy structure. Monthly observations are stored in a single month column, screening scores have been separated into individual variables, and numeric values previously stored as text have been cleaned and converted for analysis.
+
+Let's begin our analysis.
+
+```{r}
+#Average screening scores by age group
+
+mental_summary <- mental_tidy %>%
+  group_by(agegroup) %>%
+  summarise(
+    avg_phq9 = mean(phq9_score, na.rm = TRUE),
+    avg_gad7 = mean(gad7_score, na.rm = TRUE)
+  )
+
+mental_summary
+```
+
+Let's make the above into a chart for visualizing.
+
+```{r}
+mental_summary_long <- mental_summary %>%
+  pivot_longer(
+    cols = c(avg_phq9, avg_gad7),
+    names_to = "score_type",
+    values_to = "average_score"
+  )
+
+ggplot(mental_summary_long, aes(x = agegroup, y = average_score, fill = score_type)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Average PHQ-9 and GAD-7 Scores by Age Group",
+    x = "Age Group",
+    y = "Average Score",
+    fill = "Score Type"
+  )
+```
+
+This summary compares average depression screening scores (PHQ-9) and anxiety screening scores (GAD-7) across age groups. Grouping by age category helps show whether mental health burden differs across demographic segments. It's clear that 18-25, 36-45 and 46-60 generally have the highest PHQ-9 scores while 36-45 and unknown age groups have the highest GAD-7 scores.
