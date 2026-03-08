@@ -76,3 +76,87 @@ Several challenges may arise when working with this dataset:
 4.  Because the data represents counts rather than percentages, additional calculations may be needed to compare distributions across groups.
 
 Addressing these issues will ensure the dataset is properly structured for analysis and visualization.
+
+```{r}
+library(tidyverse)
+
+religion_raw <- read_csv("data.csv")
+glimpse(religion_raw)
+head(religion_raw)
+```
+
+```{r}
+#Let's tidy the dataset now. 
+
+religion_clean <- religion_raw %>%
+  rename_with(tolower)
+```
+
+The income brackets are currently stored as separate columns. To make the dataset tidy, these columns will be reshaped into a single income_bracket variable and a respondent_count variable.
+
+```{r}
+religion_tidy <- religion_clean %>%
+  pivot_longer(
+    cols = -religion,
+    names_to = "income_bracket",
+    values_to = "respondent_count"
+  )
+
+glimpse(religion_tidy)
+head(religion_tidy)
+```
+
+Now that this is tidy and in long format, let's begin our analysis.
+
+```{r}
+religion_summary <- religion_tidy %>%
+  group_by(religion) %>%
+  summarise(total_respondents = sum(respondent_count))
+
+religion_summary
+```
+
+Let's visualize this.
+
+```{r}
+religion_tidy <- religion_tidy %>%
+  mutate(
+    income_bracket = factor(
+      income_bracket,
+      levels = c(
+        "<$10k",
+        "$10-20k",
+        "$20-30k",
+        "$30-40k",
+        "$40-50k",
+        "$50-75k",
+        "$75-100k",
+        "$100-150k",
+        ">$150k",
+        "don't know/refused"
+      )
+    )
+  )
+
+
+
+top_religions <- religion_tidy %>%
+  group_by(religion) %>%
+  summarise(total_respondents = sum(respondent_count, na.rm = TRUE)) %>%
+  slice_max(order_by = total_respondents, n = 5)
+
+religion_plot_data <- religion_tidy %>%
+  filter(religion %in% top_religions$religion)
+
+ggplot(religion_plot_data, aes(x = income_bracket, y = respondent_count, fill = religion)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Income Distribution for the Five Largest Religious Groups",
+    x = "Income Bracket",
+    y = "Number of Respondents",
+    fill = "Religion"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+This visualization shows how respondents from the five largest religious groups are distributed across income brackets. Most groups have their highest counts in the middle-income ranges, particularly \$50–75k and \$75–100k. Evangelical and Catholic respondents appear most frequently across the income categories, while Historically Black Protestant respondents appear less frequently overall. The chart highlights how income distribution varies across religious affiliations while showing a general concentration in middle-income levels.
