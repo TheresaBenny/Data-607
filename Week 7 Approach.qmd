@@ -1,0 +1,76 @@
+---
+title: "Assignment 7 Approach"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## **Approach**
+
+This project explores how structured data stored in different file formats (HTML and JSON) can be imported into R and transformed into data frames for analysis. The goal is to manually create both file types, load them into R using appropriate packages, and verify whether the resulting data structures are identical.
+
+**Data Selection**
+
+I will be selecting the following three books about Philosophy: *Beyond Good and Evil* by Friedrich Nietzsche, *The Unbearable Lightness of Being* by Milan Kundera and *The Philosopher's Toolkit* **b**y Julian Baggini and Peter S. Fosl. At least one of the books will include multiple authors to satisfy the assignment requirement.
+
+For each book, I will record the following attributes:
+
+-   Title
+
+-   Author(s)
+
+-   Publication Year
+
+-   Publisher
+
+-   ISBN
+
+These attributes were chosen because they are commonly available for books and can be easily represented in both HTML tables and JSON objects.
+
+**File Creation**
+
+I will manually construct two files:
+
+**HTML file (books.html)**
+
+-   The book data will be represented as a **table structure** using standard HTML tags.
+
+-   The table will include a header row defining each column and rows for each book entry.
+
+-   Multiple authors will be stored in a single cell, separated by commas.
+
+**JSON file (books.json)**
+
+-   The same dataset will be represented as a **list of book objects**.
+
+-   Each book will contain key–value pairs corresponding to the attributes used in the HTML table.
+
+-   If a book has multiple authors, they will be stored as an **array of author names**.
+
+**Loading Data into R**
+
+Once both files are created, I will load them into R using commonly used packages for parsing structured data.
+
+-   The **rvest** or **xml2** package will be used to extract the HTML table and convert it into a data frame.
+
+-   The **jsonlite** package will be used to parse the JSON file and convert it into a data frame.
+
+After loading the two datasets, I will ensure that the columns have consistent names and data types so that they can be compared accurately.
+
+**Comparing the Data Frames**
+
+To verify that both data sources represent the same data, I will compare the resulting data frames in R. This comparison will confirm whether the HTML and JSON representations produce identical datasets once loaded into R.
+
+**Anticipated Challenges**
+
+Several potential challenges may arise during this process:
+
+-   **Handling multiple authors:** JSON naturally supports arrays, but HTML tables do not, so authors may need to be represented differently in each format.
+
+-   **Data type consistency:** Attributes such as publication year may be interpreted as character or numeric values depending on how they are parsed.
+
+-   **Table parsing issues:** When extracting data from HTML, the table structure must be properly formatted for R to read it correctly.
+
+-   **Ensuring identical structures:** The column names and ordering must match between the two data frames for a valid comparison.
+
+By manually constructing both files and loading them into R, this exercise will help build familiarity with how structured data formats are represented and processed in data analysis workflows.
