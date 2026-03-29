@@ -1,0 +1,189 @@
+---
+title: "Week 9 Codebase"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach Deliverable
+
+### Overview
+
+For this assignment, I plan to use the **New York Times Books API** to retrieve data about current best sellers. I chose the **Books API** because it provides structured book data that is relatively easy to work with in JSON format, while still giving enough detail to practice API authentication, parsing, and tidying in R. The Books API includes services for New York Times Best Sellers lists and book reviews. One available best-seller endpoint returns details for a specific list, such as `hardcover-fiction`, using the Books API v3 list service. ([GitHub](https://github.com/nytimes/public_api_specs/blob/master/books_api/books_api.md?utm_source=chatgpt.com "public_api_specs/books_api/books_api.md at master"))
+
+My guiding question will be:
+
+**What are the top 5 current hardcover fiction best sellers, and what do their ranks, weeks on the list, and publishers suggest about the books currently performing best?**
+
+This question is narrow enough to complete clearly for the assignment, but still allows for basic analysis beyond simply pulling the data.
+
+### Planned Approach
+
+I will use the **Best Sellers list details** portion of the NYT Books API and request the current **hardcover-fiction** list. The Books API documentation describes a list-details endpoint for a specific list name and date, including requests such as `current/hardcover-fiction.json`. ([GitHub](https://github.com/nytimes/public_api_specs/blob/master/books_api/books_api.md?utm_source=chatgpt.com "public_api_specs/books_api/books_api.md at master"))
+
+In R, I plan to:
+
+1.  **Store my API key securely**\
+    I will not hard code the API key in my Quarto document. Instead, I will store it in an environment variable and access it with `Sys.getenv("NYT_API_KEY")`. This keeps the key out of the shared file and follows the assignment requirement.
+
+2.  **Make the API request**\
+    I will send a GET request to the Books API endpoint for the current hardcover fiction list. I expect to include my API key as a parameter in the request URL.
+
+3.  **Parse the JSON response**\
+    The response will likely contain top-level metadata plus a nested results section. I will inspect the structure carefully to identify which part contains the actual list of books.
+
+4.  **Convert the data into a tidy data frame**\
+    From the response, I will extract only the fields that are most useful for analysis. For example, I may keep:
+
+    -   title
+
+    -   author
+
+    -   rank
+
+    -   weeks_on_list
+
+    -   publisher
+
+    -   description
+
+    I will then place these into a tibble so the data is clean and easy to analyze.
+
+5.  **Do a small amount of analysis**\
+    Since my question focuses on the top 5 books, I will examine the first five ranked entries and describe any patterns I notice. For example, I may look at whether the highest-ranked books also have the longest time on the list, or whether certain publishers appear more than once.
+
+### Expected Data Cleaning / Tidying Decisions
+
+I expect the JSON response to contain nested fields, so one of the main cleaning tasks will be identifying where the actual book entries live and flattening that structure into columns.
+
+Some likely data-cleaning decisions include:
+
+-   **Selecting only relevant columns**\
+    The API may return more information than I need, so I will keep only the variables that help answer my question.
+
+-   **Handling nested content**\
+    Some fields may be stored inside a nested list structure rather than in a flat table. I may need to unnest or map over part of the response before converting it into a tibble.
+
+-   **Checking for missing values**\
+    Some descriptive fields may be blank or missing for certain books. If that happens, I will note it and either keep the missing values as `NA` or exclude those fields from interpretation if they are not central to the question.
+
+-   **Making column names readable**\
+    If needed, I will rename columns so they are easier to understand in the final data frame.
+
+### Anticipated Challenges
+
+One challenge may be understanding the structure of the JSON response, especially if the returned object has multiple layers. I will likely need to inspect the response with tools like `str()` or `names()` before deciding exactly how to extract the books table.
+
+Another challenge is that the API returns live data, so the exact books and rankings may change over time. Because of that, my results may not match someone else’s if they run the code on a different day.
+
+A smaller challenge may be deciding how much of the returned data is useful. The API can include more detail than is needed for a simple assignment, so I will need to stay focused on the fields that help answer my question clearly.
+
+### Deliverable Plan
+
+My final Quarto document will include:
+
+-   the selected API and a short description of what it provides
+
+-   the endpoint I used and the request parameters
+
+-   code showing authentication through an environment variable
+
+-   code to request and parse the JSON response
+
+-   code that creates a tidy data frame
+
+-   a short explanation of data-cleaning choices
+
+-   a brief interpretation of the top 5 hardcover fiction best sellers
+
+## Codebase
+
+```{r}
+#Load packages
+
+library(httr2)
+library(jsonlite)
+library(dplyr)
+library(tibble)
+
+api_key <- Sys.getenv("NYT_API_KEY")
+
+
+## Make API Request
+
+# Base URL for NYT Books API (hardcover fiction list)
+url <- "https://api.nytimes.com/svc/books/v3/lists/current/hardcover-fiction.json"
+
+# Add API key as query parameter
+request <- request(url) %>%
+  req_url_query(`api-key` = api_key)
+
+# Perform the request
+response <- request %>%
+  req_perform()
+
+# Check response
+response
+
+```
+
+```{r}
+# Parse JSON
+# Convert response to text
+json_data <- response %>%
+  resp_body_string()
+
+# Convert JSON text to R list
+parsed_data <- jsonlite::fromJSON(json_data)
+
+# Look at structure
+str(parsed_data, max.level = 2)
+```
+
+```{r}
+# Extract books data
+
+books_df <- parsed_data$results$books
+
+# Preview the data
+glimpse(books_df)
+```
+
+```{r}
+#Create a tidy books table from the API
+
+tidy_books <- books_df %>%
+  select(
+    rank,
+    title,
+    author,
+    publisher,
+    weeks_on_list,
+    description
+  ) %>%
+  as_tibble()
+
+tidy_books
+```
+
+```{r}
+# Pull just top 5:
+
+top_5_books <- tidy_books %>%
+  arrange(rank) %>%
+  slice_head(n = 5)
+
+top_5_books
+```
+
+```{r}
+#And analysis
+
+top_5_books %>%
+  summarise(
+    avg_weeks_on_list = mean(weeks_on_list),
+    max_weeks_on_list = max(weeks_on_list),
+    min_weeks_on_list = min(weeks_on_list)
+  )
+#Looks like most books are on the list for an average of 6.6 weeks.
+```
