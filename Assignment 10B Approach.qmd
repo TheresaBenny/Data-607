@@ -1,0 +1,22 @@
+---
+title: "Assignment 10B Approach"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach Deliverable
+
+For this assignment, I will use the Nobel Prize public API to retrieve JSON data and transform it into tidy data frames in R. The Nobel Prize Developer Zone provides open data through a REST API, and the current API version is 2.1. The API returns Nobel Prize and laureate data in JSON or CSV format, which makes it appropriate for this assignment’s focus on JSON practice.
+
+My first step will be to identify which Nobel API endpoint or endpoints are most useful for the questions I want to answer. Since the assignment requires four data-driven questions, I will likely work with prize-level data and laureate-level data so I can examine both award information and person-level details. After retrieving the JSON responses in R, I will parse the nested data and convert it into tidy tables. This will likely involve separating prize records from laureate records, expanding nested fields, and selecting the variables needed for analysis. Because JSON data often contains nested structures, one important part of the assignment will be reshaping the data into rectangular data frames that can be filtered, grouped, joined, and visualized.
+
+Once the data is loaded into tidy format, I will formulate four questions that can be answered directly from the Nobel data. At least one of these questions will go beyond a simple count and require a more advanced transformation, such as joining laureate information to prize information, comparing birth-country fields to award-affiliation or citizenship-related fields, or examining changes across time and categories. This matches the assignment requirement that at least one question involve joining, filtering, or comparing multiple fields rather than only summarizing totals.
+
+A good strategy will be to choose four questions with increasing complexity. I will begin with one or two straightforward descriptive questions, such as which prize category has the most laureates or which years had the highest number of awardees. Then I will include more analytical questions, such as comparing the geographic origins of laureates with the countries connected to their prize affiliations, identifying trends by decade, or examining how the number of shared prizes has changed over time. This approach will show both basic JSON handling and stronger data-wrangling skills.
+
+For each question, I will clearly structure the report in four parts: the question itself, the code used to retrieve and process the relevant data, the resulting table or plot, and a short interpretation of the answer. This structure will make it easy to demonstrate that each conclusion comes directly from the JSON data and that the full workflow is reproducible in Quarto.
+
+One anticipated challenge is that Nobel API data is nested and may include repeated subfields for laureates, prize motivations, affiliations, or locations. Because of this, I will need to inspect the structure carefully before tidying it. Another challenge is that some variables may be missing for certain records or may appear differently across organizations and individuals, so I will need to handle incomplete fields carefully. A third challenge is making sure that the questions are interesting enough to go beyond simple counts while still being clearly answerable from the available JSON data.
+
+The final deliverable will be a single Quarto file containing all four questions, all R code used to retrieve and tidy the Nobel Prize JSON data, and the resulting answers in the form of tables, summaries, or plots. This file will demonstrate the full workflow from API retrieval to tidy analysis and interpretation.
