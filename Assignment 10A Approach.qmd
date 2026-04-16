@@ -1,0 +1,26 @@
+---
+title: "Assignment 10A Approach"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach Deliverable
+
+For Assignment 10A, I will reproduce and extend the sentiment analysis example from Chapter 2 of *Text Mining with R*. The original example begins by converting Jane Austen’s novels into tidy text format, where each row contains a single word. The text is organized with variables such as book, line number, and chapter, and then tokenized using `unnest_tokens()`. After the text is in tidy form, sentiment analysis is performed by joining the words to a sentiment lexicon and then summarizing sentiment across sections of the text. The chapter shows this process using the `bing`, `AFINN`, and `NRC` lexicons.
+
+My first step will be to reproduce the base example in a Quarto file. I will include the setup code, load the required libraries, create the `tidy_books` object, and run the same sentiment analysis workflow shown in the chapter. This includes creating the tidy text dataset, joining it to a sentiment lexicon, grouping the words into text sections, calculating sentiment scores, and visualizing the results. I will also include a citation to *Text Mining with R* and note that the code pattern is based on the Chapter 2 sentiment analysis example.
+
+For the extension portion, I will apply the same workflow to a different text corpus: David Foster Wallace’s *This Is Water* speech. Since this text is a speech rather than a novel, I will adapt the original workflow so that the speech can still be analyzed in sections. Instead of chapters across multiple books, I will divide the speech into smaller chunks, such as groups of lines or paragraphs, so that I can observe how sentiment changes throughout the speech. This will allow me to preserve the main idea of the original example, which is to examine sentiment across the progression of a text. The core extension is therefore not inventing a new method, but applying the same Chapter 2 method to a different kind of text.
+
+I will also extend the original analysis by adding at least one additional sentiment lexicon beyond those already used in Chapter 2. Since the chapter already uses `bing`, `AFINN`, and `NRC`, my added lexicon should come from another package or an externally researched source. I will compare the results from this added lexicon with the original lexicon results and explain whether the speech appears more positive, more negative, or more mixed depending on the dictionary used. This comparison is important because lexicons classify and score words differently, so sentiment results may vary even when analyzing the same text.
+
+The main goal of my report will be to clearly explain how the extension differs from the original example. The original analysis focuses on Jane Austen’s fiction and shows sentiment changing across narrative arcs. My extension uses a modern speech, which is shorter and more reflective, so the sentiment pattern may look less dramatic or may shift differently across sections. I also expect the additional lexicon to produce different results from the original lexicons because each dictionary is built with different word lists and scoring methods. Rather than treating one result as definitively correct, I will explain how the choice of text and the choice of lexicon both influence the interpretation.
+
+One challenge in this assignment will be preparing *This Is Water* in a format that works well with tidy text analysis. Because the original chapter uses book structure and line numbers, I will need to create a similar grouping structure for the speech. Another challenge is that lexicon-based sentiment analysis works at the word level and may miss context, such as irony, negation, or phrases whose meaning depends on surrounding words. I will acknowledge these limitations in my discussion so that the results are interpreted carefully. Chapter 2 itself notes that unigram-based lexicon methods do not account for qualifiers such as “not good,” and that chunk size can affect the final sentiment pattern.
+
+**Citation**
+
+Silge, J., & Robinson, D. (2017). *Text Mining with R: A tidy approach*. O’Reilly Media. <https://www.tidytextmining.com/>
+
+David Foster Wallace (2005). *This is water: Commencement address at Kenyon College*. Retrieved from [https://web.ics.purdue.edu/\~drkelly/DFWKenyonAddress2005.pdf](https://web.ics.purdue.edu/~drkelly/DFWKenyonAddress2005.pdf?utm_source=chatgpt.com)
