@@ -1,0 +1,28 @@
+---
+title: "Assignment 11"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach
+
+### Planned Approach
+
+For this assignment, I plan to build a personalized recommendation system using the same survey data from the earlier baseline recommendation assignment. Instead of producing one overall recommendation list for all users, the goal here is to generate recommendations that are tailored to each individual user based on their own responses and patterns in the data.
+
+To tackle the problem, I will first examine how the survey data is structured and identify what should count as the users, the items, and the preference signal. In a recommendation setting, the data usually needs to be organized so that each user has some type of interaction, rating, or preference associated with different items. If the current survey data is not already in that format, I will need to reshape it into a user-item structure that can support recommendation modeling.
+
+My choice is a collaborative filtering approach because it is a common and effective way to generate personalized recommendations based on similarities in user behavior or item preference patterns. Once the model is built, I want it to produce a ranked list of recommended items for each user, such as the top 3 or top 5 items the user has not already selected but is predicted to like.
+
+To evaluate the recommender, I plan to hold out part of the data and test how well the model predicts unseen preferences. This will help me measure whether the recommendations are meaningful rather than just fitting the original data too closely. Depending on the final format of the output, I may evaluate performance using prediction accuracy or ranking-based measures.
+
+### Anticipated Data Challenges
+
+One challenge I anticipate is that the survey data may not look like a traditional recommender dataset. Recommendation systems usually rely on clear user-item interactions, but survey data may contain responses in a format that needs interpretation before it can be used. I may need to decide how to convert survey answers into a usable preference measure, such as binary selections, scaled ratings, or other indicators of interest.
+
+Another likely challenge is missing or sparse data. In many recommendation problems, users have only interacted with a small number of items, which can make it harder to identify strong patterns or similarities. If the survey responses are incomplete or uneven across users, that could affect how well the recommender performs.
+
+I also expect that evaluation may be a challenge. Since personalized recommendation is about suggesting relevant items to each user, I will need to make sure the testing approach reflects that goal. This means I will need to carefully separate training and test data so the model is evaluated fairly.
+
+Overall, my approach is to first make the survey data suitable for recommendation analysis, then apply one personalized recommendation method, and finally assess whether the model can generate useful user-specific recommendations.
