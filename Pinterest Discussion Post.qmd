@@ -1,0 +1,74 @@
+---
+title: "Pinterest Recommendation system"
+format: html
+editor: visual
+---
+
+## Introduction
+
+For this assignment, I analyzed the recommender system used by Pinterest. Pinterest is a visually-driven platform that focuses on discovery, inspiration, and planning. Unlike platforms that recommend content purely for entertainment, Pinterest’s recommendations are closely tied to user intent, such as planning events, decorating spaces, or finding products.
+
+------------------------------------------------------------------------
+
+## Scenario Design Analysis
+
+### 1. What is the user trying to accomplish?
+
+The primary user goal is:\
+**“Help me discover ideas that match my taste and current plans.”**
+
+Users often come to Pinterest with a goal in mind, such as: - Planning a wedding - Designing a home - Finding outfit inspiration - Discovering recipes
+
+They expect recommendations that are visually relevant, personalized, and easy to save for future use.
+
+------------------------------------------------------------------------
+
+### 2. What does the organization want to accomplish?
+
+From Pinterest’s perspective, the goals include: - Increasing user engagement (time on platform) - Encouraging saves (Pins added to boards) - Driving clicks and shopping behavior - Supporting ad targeting and monetization
+
+Pinterest benefits when users continuously interact with recommended Pins and return to the platform.
+
+------------------------------------------------------------------------
+
+### 3. How does the system meet both needs?
+
+Pinterest’s recommender system appears to balance both user and business goals by: - Personalizing the home feed based on saved Pins, boards, and searches - Recommending visually similar content - Updating recommendations in real-time based on recent activity - Suggesting related Pins when users click on a specific image
+
+This creates a feedback loop where user actions continuously improve future recommendations.
+
+------------------------------------------------------------------------
+
+## Reverse Engineering the System
+
+Based on the interface and available information, Pinterest likely uses several recommendation techniques:
+
+-   **Content-based filtering**: Recommending Pins visually or contextually similar to those the user has interacted with
+-   **Collaborative filtering**: Suggesting Pins that similar users have saved or engaged with
+-   **Graph-based methods**: Connecting Pins and boards to find related content
+-   **Real-time signals**: Adjusting recommendations based on recent searches, clicks, and saves
+
+These combined approaches allow Pinterest to deliver highly relevant and evolving recommendations.
+
+------------------------------------------------------------------------
+
+## Recommendations for Improvement
+
+Although Pinterest’s recommender system is strong, it could be improved in the following ways:
+
+1.  **Increase transparency**
+    -   Show why a Pin is recommended (e.g., “Based on your kitchen board”)
+2.  **Improve user control**
+    -   Allow users to adjust preferences (budget, style, recency)
+3.  **Better handling of temporary interests**
+    -   Distinguish between long-term interests and short-term searches
+4.  **Enhance feedback options**
+    -   Go beyond “hide Pin” to include more specific feedback like “not relevant” or “too expensive”
+
+These improvements would make the system more user-centered and trustworthy.
+
+------------------------------------------------------------------------
+
+## Conclusion
+
+Pinterest’s recommender system is effective because it supports discovery and long-term planning rather than just short-term engagement. By combining multiple recommendation techniques, it delivers personalized and visually relevant content. However, increasing transparency and giving users more control could further enhance the overall user experience.
