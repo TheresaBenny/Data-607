@@ -1,0 +1,50 @@
+---
+title: "Project 4"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Approach: Classifying Emotional Tone in Relationship Communication
+
+### Data Collection
+
+For this project, I plan to construct a dataset using text data from publicly available online forums such as Reddit, particularly communities focused on relationships and advice. Comments and posts will serve as the unit of analysis.
+
+I will manually label a subset of the data into the three predefined categories (supportive, neutral, dismissive). This approach will allow me to ensure consistency in how emotional tone is defined and applied. I expect the dataset to include approximately 200–500 labeled observations, which should be sufficient for exploratory modeling and evaluation.
+
+### Data Preparation
+
+Before modeling, I will preprocess the text data to make it suitable for analysis. This will include converting all text to lowercase, removing punctuation and special characters, and eliminating common stopwords such as “the” and “and.” I will also tokenize the text into individual words.
+
+After cleaning, I will transform the text into a numerical format using a Term Frequency–Inverse Document Frequency (TF-IDF) representation. This will allow the models to interpret the importance of different words across messages.
+
+### Modeling Approach
+
+I plan to use two standard classification models for this task:
+
+-   Naive Bayes, which is commonly used for text classification due to its simplicity and effectiveness
+
+-   Logistic Regression, which can capture relationships between word features and classification outcomes
+
+I chose these models because they are interpretable, efficient, and well-suited for text-based problems.
+
+### Evaluation Strategy
+
+To evaluate model performance, I will split the dataset into training and testing sets. The training set will be used to build the models, while the testing set will be used to assess how well the models generalize to new data.
+
+I will evaluate performance using accuracy as a general measure, along with precision and recall to better understand how well the model identifies supportive and dismissive messages. I will also use a confusion matrix to analyze where the model makes mistakes, such as confusing neutral messages with dismissive ones.
+
+### Expected Challenges
+
+There are several challenges I anticipate in this project. First, emotional tone is inherently subjective, so labeling may vary depending on interpretation. Second, there may be class imbalance if certain types of messages appear more frequently than others. Third, individual messages may lack sufficient context, making classification more difficult. Finally, subtle language cues such as sarcasm or indirect phring may be challenging for the models to detect.
+
+To address these challenges, I will define clear labeling guidelines and interpret my results with these limitations in mind.
+
+### Expected Outcomes
+
+I expect this project to show that machine learning models can identify patterns in language associated with different emotional tones. While I do not expect perfect accuracy due to the subjective nature of communication, I anticipate that the models will still provide meaningful insights into how supportive and dismissive language can be distinguished.
+
+### Real-World Applications
+
+This type of classification has several potential real-world applications. It could be used to enhance moderation systems in online communities, support mental health and well-being tools, and improve communication analysis in areas such as customer service or relationship platforms.
