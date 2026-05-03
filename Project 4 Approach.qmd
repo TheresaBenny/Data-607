@@ -21,13 +21,9 @@ After cleaning, I will transform the text into a numerical format using a Term F
 
 ### Modeling Approach
 
-I plan to use two standard classification models for this task:
+I plan to use this standard classification models for this task:
 
--   Naive Bayes, which is commonly used for text classification due to its simplicity and effectiveness
-
--   Logistic Regression, which can capture relationships between word features and classification outcomes
-
-I chose these models because they are interpretable, efficient, and well-suited for text-based problems.
+-   Naive Bayes, which is commonly used for text classification due to its simplicity and effectiveness.
 
 ### Evaluation Strategy
 
@@ -48,3 +44,179 @@ I expect this project to show that machine learning models can identify patterns
 ### Real-World Applications
 
 This type of classification has several potential real-world applications. It could be used to enhance moderation systems in online communities, support mental health and well-being tools, and improve communication analysis in areas such as customer service or relationship platforms.
+
+## Codebase
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(tidytext)
+library(tidymodels)
+```
+
+```{r}
+relationship_texts <- tibble(
+  text = c(
+# supportive
+    "I understand why you feel hurt and your feelings are valid.",
+    "You deserve someone who listens to you and respects your emotions.",
+    "That sounds really difficult and I am sorry you are going through it.",
+    "It makes sense that you would feel confused after that conversation.",
+    "You handled this with a lot of patience and care.",
+    "I think you should talk to them honestly because your feelings matter.",
+    "It is okay to need reassurance in a relationship.",
+    "You are not wrong for wanting kindness and consistency.",
+    "I can see why this situation would make you anxious.",
+    "You deserve to be treated with respect.",
+    "A healthy relationship should make both people feel heard.",
+    "Your reaction makes sense given what happened.",
+    "I hope you are able to get the support you need.",
+    "It sounds like you tried your best to communicate clearly.",
+    "You should not have to beg someone to care about your feelings.",
+    "I would feel hurt too if I were in that situation.",
+    "It is reasonable to ask for clarity and honesty.",
+    "You are allowed to set boundaries.",
+    "This sounds painful and I hope things get better for you.",
+    "You deserve compassion, not judgment.",
+    # neutral
+    "It depends on what happened before this conversation.",
+    "There may be more context needed before judging the situation.",
+    "It is hard to know without hearing both sides.",
+    "This could be a misunderstanding between both people.",
+    "The best next step may be to have a direct conversation.",
+    "More information would help explain their behavior.",
+    "This situation could go either way depending on their intentions.",
+    "It might be useful to wait and see if the pattern continues.",
+    "There are several possible explanations for what happened.",
+    "Both people may need time to think about the issue.",
+    "It is unclear whether this was intentional or accidental.",
+    "A calm conversation could help clarify the problem.",
+    "The situation sounds complicated and may need more context.",
+    "It depends on whether this has happened before.",
+    "There is not enough information to say for sure.",
+    "They may have meant something different than how it sounded.",
+    "It could be helpful to ask them what they meant.",
+    "This might be a communication issue rather than a relationship issue.",
+    "It is possible that both people are interpreting things differently.",
+    "The outcome depends on how they respond when you bring it up.",
+     # dismissive
+    "You are overreacting and making this a bigger deal than it is.",
+    "That sounds like your problem, not theirs.",
+    "I do not think your feelings matter that much here.",
+    "You are being too sensitive about something small.",
+    "Just get over it and move on.",
+    "This is not worth being upset about.",
+    "You are making drama out of nothing.",
+    "They probably did nothing wrong and you are reading into it.",
+    "You need to stop taking everything so personally.",
+    "Honestly, this sounds like an immature reaction.",
+    "You should not expect people to care about every little feeling.",
+    "This is a you problem, not a relationship problem.",
+    "You are acting like this is worse than it really is.",
+    "I think you are being dramatic.",
+    "There is no reason to be hurt by that.",
+    "You are creating problems where there are none.",
+    "It is not that serious.",
+    "You need thicker skin.",
+    "This seems like attention seeking.",
+    "You are blowing this way out of proportion."
+  ),
+  tone = c(
+    rep("supportive", 20),
+    rep("neutral", 20),
+    rep("dismissive", 20)
+  )
+)
+
+relationship_texts <- relationship_texts %>%
+  mutate(tone = as.factor(tone))
+```
+
+```{r}
+tidy_text <- relationship_texts %>%
+  unnest_tokens(word, text)
+tidy_text <- tidy_text %>%
+  filter(!word %in% c("you", "am", "im", "ive", "dont"))
+```
+
+Let's see which words are most important for each tone category.
+
+```{r}
+tf_idf_words <- tidy_text %>%
+  count(tone, word, sort = TRUE) %>%
+  bind_tf_idf(word, tone, n)
+
+head(tf_idf_words)
+```
+
+Let's visualize this.
+
+```{r}
+tf_idf_words %>%
+  group_by(tone) %>%
+  slice_max(tf_idf, n = 5) %>%
+  ungroup() %>%
+  ggplot(aes(x = reorder(word, tf_idf), y = tf_idf, fill = tone)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ tone, scales = "free") +
+  coord_flip() +
+  labs(
+    title = "Top TF-IDF Words by Emotional Tone",
+    x = "Word",
+    y = "TF-IDF"
+  )
+```
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(tidymodels)
+
+set.seed(123)
+
+data_split <- initial_split(relationship_texts, prop = 0.8, strata = tone)
+
+train_data <- training(data_split)
+test_data <- testing(data_split)
+```
+
+```{r}
+library(textrecipes)
+
+text_recipe <- recipe(tone ~ text, data = train_data) %>%
+  step_tokenize(text) %>%
+  step_stopwords(text) %>%
+  step_tfidf(text)
+
+```
+
+Let's connect the workflow
+
+```{r}
+library(discrim)
+
+nb_model <- naive_Bayes() %>%
+  set_engine("klaR")
+
+workflow_nb <- workflow() %>%
+  add_recipe(text_recipe) %>%
+  add_model(nb_model)
+nb_fit <- fit(workflow_nb, data = train_data)
+predictions <- predict(nb_fit, test_data) %>%
+  bind_cols(test_data)
+
+
+
+```
+
+```{r}
+predictions
+conf_mat(predictions, truth = tone, estimate = .pred_class)
+accuracy(predictions, truth = tone, estimate = .pred_class)
+```
+
+The first model achieved an accuracy of 33%, correctly classifying 1 out of 3 test observations. The model tended to predict the “supportive” class for all observations, indicating a bias likely caused by the small dataset size and limited variation in training examples.
+
+In order to train the model better, I added more data. After expanding the dataset to include a balanced set of 60 labeled observations, the model’s accuracy decreased compared to the initial smaller dataset. This is expected, as the larger dataset provides a more realistic and challenging classification task. With more diverse examples, the model is less likely to rely on simple patterns and must better distinguish between subtle differences in emotional tones.
+
+The results highlight that classifying emotional tone is inherently complex, as many words and phrases appear across multiple categories. This leads to overlap between classes, particularly between neutral and supportive messages.
