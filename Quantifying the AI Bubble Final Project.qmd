@@ -1,0 +1,417 @@
+---
+title: "Quantifying the AI Bubble Final Project"
+author: "Theresa Benny"
+format: html
+editor: visual
+---
+
+## Are AI Company Valuations Growing Faster Than Financial Performance?
+
+```{r}
+library(tidyverse)
+library(tidyquant)
+library(lubridate)
+library(scales)
+library(gt)
+library(broom)
+```
+
+## Project Overview
+
+This project examines whether stock market valuations of major AI-focused technology companies have grown faster than their underlying financial performance. With increased investor excitement around artificial intelligence, companies such as NVIDIA, Microsoft, Alphabet, Amazon, and Meta have experienced major market growth. This analysis compares stock price growth against business fundamentals such as revenue and net income to evaluate whether market performance appears aligned with financial performance.
+
+The project follows the OSEMN data science workflow:
+
+1.  **Obtain** financial market and company fundamentals data\
+2.  **Scrub** and clean the data into comparable formats\
+3.  **Explore** trends in stock prices, revenue, and net income\
+4.  **Model** the relationship between financial performance and stock growth\
+5.  **Interpret** whether valuation growth appears supported by fundamentals
+
+# First let's define the AI-related companies for this project
+
+```{r}
+ai_tickers <- c("NVDA", "MSFT", "GOOGL", "AMZN", "META")
+stock_prices <- tq_get(
+  ai_tickers,
+  get = "stock.prices",
+  from = "2020-01-01",
+  to = Sys.Date()
+)
+# Preview the data
+glimpse(stock_prices)
+```
+
+Now let's pull company financial fundamentals. This gives us revenue + net income directly from financial statements.
+
+```{r}
+library(httr2)
+library(jsonlite)
+
+company_map <- tibble(
+  symbol = c("NVDA", "MSFT", "GOOGL", "AMZN", "META"),
+  company = c("NVIDIA", "Microsoft", "Alphabet", "Amazon", "Meta"),
+  cik = c("0001045810", "0000789019", "0001652044", "0001018724", "0001326801")
+)
+
+get_sec_revenue <- function(symbol, company, cik) {
+  
+  url <- paste0(
+    "https://data.sec.gov/api/xbrl/companyfacts/CIK",
+    cik,
+    ".json"
+  )
+  
+  response <- request(url) %>%
+    req_user_agent("MSDS 607 project analysis") %>%
+    req_perform()
+  
+  data <- response %>%
+    resp_body_json()
+  
+  revenue_options <- c(
+    "Revenues",
+    "RevenueFromContractWithCustomerExcludingAssessedTax",
+    "SalesRevenueNet",
+    "SalesRevenueGoodsNet",
+    "SalesRevenueServicesNet"
+  )
+  
+  all_revenue_tables <- list()
+  
+  for (field in revenue_options) {
+    
+    if (field %in% names(data$facts$`us-gaap`)) {
+      
+      possible_units <- data$facts$`us-gaap`[[field]]$units
+      
+      if ("USD" %in% names(possible_units)) {
+        
+        temp_tbl <- bind_rows(possible_units$USD)
+        
+        if ("form" %in% names(temp_tbl)) {
+          
+          cleaned_tbl <- temp_tbl %>%
+            filter(form == "10-K") %>%
+            mutate(
+              start = as.Date(start),
+              end = as.Date(end),
+              filed = as.Date(filed),
+              duration_days = as.numeric(end - start)
+            ) %>%
+            filter(duration_days >= 300, duration_days <= 370) %>%
+            filter(year(end) == fy) %>%
+            select(fy, filed, val) %>%
+            mutate(
+              symbol = symbol,
+              company = company,
+              revenue = val,
+              revenue_field = field
+            ) %>%
+            select(symbol, company, fy, filed, revenue, revenue_field)
+          
+          all_revenue_tables[[field]] <- cleaned_tbl
+        }
+      }
+    }
+  }
+  
+  best_tbl <- bind_rows(all_revenue_tables) %>%
+    group_by(revenue_field) %>%
+    mutate(field_row_count = n()) %>%
+    ungroup() %>%
+    arrange(desc(field_row_count)) %>%
+    group_by(symbol, company, fy) %>%
+    slice(1) %>%
+    ungroup()
+  
+  return(best_tbl)
+}
+```
+
+```{r}
+revenue_data <- pmap_dfr(
+  company_map,
+  get_sec_revenue
+)
+
+revenue_clean <- revenue_data %>%
+  group_by(symbol, company, fy) %>%
+  arrange(desc(filed)) %>%
+  slice(1) %>%
+  ungroup() %>%
+  filter(fy >= 2020) %>%
+  arrange(symbol, fy)
+
+revenue_clean
+```
+
+It looks like this has **duplicate SEC records per fiscal year**, so before we pull net income, let’s clean revenue first.
+
+```{r}
+revenue_clean <- revenue_data %>%
+  mutate(
+    filed = as.Date(filed)
+  ) %>%
+  group_by(symbol, company, fy) %>%
+  arrange(desc(filed), desc(revenue)) %>%
+  slice(1) %>%
+  ungroup() %>%
+  filter(fy >= 2020) %>%
+  arrange(symbol, fy)
+
+revenue_clean
+```
+
+Some companies/years are missing, especially Alphabet and NVIDIA. Let's fix that.
+
+```{r}
+annual_stock_growth <- stock_prices %>%
+  mutate(year = year(date)) %>%
+  group_by(symbol, year) %>%
+  summarize(
+    first_price = first(adjusted),
+    last_price = last(adjusted),
+    stock_growth_pct = (last_price / first_price - 1) * 100,
+    .groups = "drop"
+  ) %>%
+  filter(year >= 2020) %>%
+  arrange(symbol, year)
+
+annual_stock_growth
+```
+
+This is much better and cleaner. Let's pull net income from SEC now for these companies.
+
+```{r}
+
+get_sec_net_income <- function(symbol, company, cik) {
+  
+  url <- paste0(
+    "https://data.sec.gov/api/xbrl/companyfacts/CIK",
+    cik,
+    ".json"
+  )
+  
+  response <- request(url) %>%
+    req_user_agent("MSDS 607 project analysis") %>%
+    req_perform()
+  
+  data <- response %>%
+    resp_body_json()
+  
+  net_income_data <- data$facts$`us-gaap`$NetIncomeLoss$units$USD
+  
+  net_income_tbl <- bind_rows(net_income_data) %>%
+    filter(form == "10-K") %>%
+    mutate(
+      start = as.Date(start),
+      end = as.Date(end),
+      filed = as.Date(filed),
+      duration_days = as.numeric(end - start)
+    ) %>%
+    filter(duration_days >= 300, duration_days <= 370) %>%
+filter(year(end) == fy) %>%
+select(fy, filed, val) %>%
+    mutate(
+      symbol = symbol,
+      company = company,
+      net_income = val
+    ) %>%
+    select(symbol, company, fy, filed, net_income)
+  
+  return(net_income_tbl)
+}
+```
+
+```{r}
+net_income_data <- pmap_dfr(
+  company_map,
+  get_sec_net_income
+)
+
+net_income_clean <- net_income_data %>%
+  group_by(symbol, company, fy) %>%
+  arrange(desc(filed)) %>%
+  slice(1) %>%
+  ungroup() %>%
+  filter(fy >= 2020) %>%
+  arrange(symbol, fy)
+
+net_income_clean
+```
+
+We'll Join revenue + net income into one fundamentals table
+
+```{r}
+fundamentals_clean <- revenue_clean %>%
+  select(symbol, company, fy, revenue) %>%
+  left_join(
+    net_income_clean %>%
+      select(symbol, fy, net_income),
+    by = c("symbol", "fy")
+  ) %>%
+  mutate(
+    revenue_billions = revenue / 1e9,
+    net_income_billions = net_income / 1e9
+  ) %>%
+  arrange(symbol, fy)
+
+fundamentals_clean
+```
+
+Now let's calculate annual revenue and net income growth
+
+```{r}
+fundamentals_growth <- fundamentals_clean %>%
+  group_by(symbol, company) %>%
+  arrange(fy) %>%
+  mutate(
+    revenue_growth_pct = (revenue / lag(revenue) - 1) * 100,
+    net_income_growth_pct = (net_income / lag(net_income) - 1) * 100
+  ) %>%
+  ungroup() %>%
+  rename(year = fy)
+
+fundamentals_growth
+```
+
+Now we need to join fundamentals growth with stock growth
+
+```{r}
+analysis_data <- annual_stock_growth %>%
+  left_join(
+    fundamentals_growth %>%
+      select(
+        symbol, company, year,
+        revenue_billions, net_income_billions,
+        revenue_growth_pct, net_income_growth_pct
+      ),
+    by = c("symbol", "year")
+  ) %>%
+  filter(!is.na(revenue_growth_pct)) %>%
+  arrange(symbol, year)
+
+analysis_data
+```
+
+Now that we have our dataset, let's visualize the stock growth vs revenue growth.
+
+```{r}
+ggplot(analysis_data, aes(x = revenue_growth_pct, y = stock_growth_pct, label = symbol)) +
+  geom_point(size = 3) +
+  geom_text(nudge_y = 5, check_overlap = TRUE) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Stock Growth vs. Revenue Growth",
+    subtitle = "Comparing annual stock returns against annual revenue growth for major AI-related companies",
+    x = "Revenue Growth (%)",
+    y = "Stock Growth (%)"
+  ) +
+  theme_minimal()
+```
+
+The scatterplot indicates a moderate positive relationship between revenue growth and stock performance, suggesting that stronger financial performance is often associated with stock appreciation. However, the variability in outcomes and presence of significant outliers imply that market valuations may also be influenced by investor sentiment and AI-related growth expectations beyond reported financial fundamentals.
+
+Let's further examine this with statistical analysis.
+
+```{r}
+stock_model <- lm(
+  stock_growth_pct ~ revenue_growth_pct + net_income_growth_pct,
+  data = analysis_data
+)
+
+summary(stock_model)
+```
+
+The regression analysis found no statistically significant relationship between annual stock growth and the financial performance metrics included in the model, specifically revenue growth and net income growth (p \> 0.05). With an R-squared of approximately 3%, the model explains very little of the variation in stock returns, suggesting that stock market performance for major AI-focused companies may be driven by factors beyond traditional financial fundamentals, such as investor sentiment, future growth expectations, or broader market trends.
+
+Next, I want to compare stock growth vs revenue growth by company over time.
+
+```{r}
+summary_comparison <- analysis_data %>%
+  group_by(symbol, company) %>%
+  summarize(
+    avg_stock_growth = mean(stock_growth_pct, na.rm = TRUE),
+    avg_revenue_growth = mean(revenue_growth_pct, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_longer(
+    cols = c(avg_stock_growth, avg_revenue_growth),
+    names_to = "metric",
+    values_to = "growth_pct"
+  ) %>%
+  mutate(
+    metric = recode(
+      metric,
+      avg_stock_growth = "Average Stock Growth",
+      avg_revenue_growth = "Average Revenue Growth"
+    )
+  )
+
+ggplot(summary_comparison, aes(x = reorder(symbol, growth_pct), y = growth_pct, fill = metric)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  labs(
+    title = "Market Growth vs Financial Growth",
+    subtitle = "Average annual stock returns compared with average annual revenue growth",
+    x = "Company",
+    y = "Average Growth (%)",
+    fill = ""
+  ) +
+  theme_minimal()
+```
+
+Across all five AI-focused companies analyzed, average annual stock growth exceeded average annual revenue growth, with the largest gap observed in NVIDIA. This suggests that investor valuation growth has outpaced underlying business expansion, supporting the hypothesis that market expectations around AI may be contributing to elevated stock performance beyond traditional financial fundamentals.
+
+I am going to run one more statistical test that directly supports the conclusion, because the regression showed “not significant.
+
+Let’s do a simpler comparison:
+
+**Is average stock growth statistically higher than average revenue growth?**
+
+```{r}
+t.test(
+  analysis_data$stock_growth_pct,
+  analysis_data$revenue_growth_pct,
+  paired = TRUE
+)
+```
+
+While the visual analysis suggests that stock market growth generally exceeds revenue growth among the AI-focused companies examined, the statistical tests did not find this difference to be significant at conventional thresholds (p \> 0.05). This indicates a directional pattern in the data, but the relatively small sample size and variability across companies limit the strength of the conclusion. As a result, the findings suggest that investor valuations may be influenced by factors beyond traditional financial performance, though stronger evidence would require a larger dataset or broader company sample.
+
+Let's do the stock price over time:
+
+```{r}
+ggplot(stock_prices, aes(x = date, y = adjusted, color = symbol)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Stock Price Trends for Major AI-Focused Companies",
+    subtitle = "Adjusted closing prices from 2020 to present",
+    x = "Date",
+    y = "Adjusted Stock Price ($)",
+    color = "Company"
+  ) +
+  theme_minimal()
+```
+
+The stock price trend visualization illustrates the market performance trajectories of major AI-focused technology companies from 2020 onward. While all companies experienced growth over the study period, the magnitude and volatility of performance varied substantially, with NVIDIA showing particularly sharp acceleration in recent years. This visualization provides descriptive context for the broader analysis by demonstrating how investor valuations evolved over time prior to comparison with underlying financial fundamentals.
+
+## Executive Summary
+
+```{r}
+summary_table <- analysis_data %>%
+  group_by(symbol, company) %>%
+  summarize(
+    avg_stock_growth = mean(stock_growth_pct, na.rm = TRUE),
+    avg_revenue_growth = mean(revenue_growth_pct, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    stock_minus_revenue = avg_stock_growth - avg_revenue_growth
+  )
+
+summary_table
+```
+
+Across all five AI-focused companies analyzed, average annual stock growth exceeded average annual revenue growth. The largest gaps were observed for Meta, NVIDIA, and Alphabet, where market appreciation substantially outpaced business growth. While earlier statistical tests did not find this relationship to be statistically significant, the directional consistency across all companies suggests that investor expectations surrounding AI may be contributing to elevated stock valuations beyond traditional financial fundamentals.
